@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+:root {
+  --color-paper: #f2ead9;
+  --color-paper-raised: #faf5e8;
+  --color-paper-line: #ddd0ac;
+  --color-ink: #1e2a38;
+  --color-ink-soft: #4d5a6b;
+  --color-ink-faint: #8b93a1;
+  --color-brass: #a3742c;
+  --color-brass-dark: #7d5a20;
+  --color-brass-soft: #ecdcb3;
+  --color-stamp-green: #3d6a4a;
+  --color-stamp-green-soft: #dfe9df;
+  --color-stamp-red: #8c3d34;
+  --color-stamp-red-soft: #f0dfd9;
+  --color-stamp-ink-soft: #dfe3e9;
+}
+
+@theme inline {
+  --color-paper: var(--color-paper);
+  --color-paper-raised: var(--color-paper-raised);
+  --color-paper-line: var(--color-paper-line);
+  --color-ink: var(--color-ink);
+  --color-ink-soft: var(--color-ink-soft);
+  --color-ink-faint: var(--color-ink-faint);
+  --color-brass: var(--color-brass);
+  --color-brass-dark: var(--color-brass-dark);
+  --color-brass-soft: var(--color-brass-soft);
+  --color-stamp-green: var(--color-stamp-green);
+  --color-stamp-green-soft: var(--color-stamp-green-soft);
+  --color-stamp-red: var(--color-stamp-red);
+  --color-stamp-red-soft: var(--color-stamp-red-soft);
+  --color-stamp-ink-soft: var(--color-stamp-ink-soft);
+
+  --font-heading: var(--font-fraunces);
+  --font-body: var(--font-plex-sans), var(--font-noto-arabic);
+  --font-num: var(--font-plex-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-paper: #1a1712;
+    --color-paper-raised: #221e17;
+    --color-paper-line: #3a3327;
+    --color-ink: #ede6d6;
+    --color-ink-soft: #b9b0a0;
+    --color-ink-faint: #7d7565;
+    --color-brass: #d1a24d;
+    --color-brass-dark: #e8bd6c;
+    --color-brass-soft: #3a2f1a;
+    --color-stamp-green: #7cae8a;
+    --color-stamp-green-soft: #21362a;
+    --color-stamp-red: #d18e83;
+    --color-stamp-red-soft: #3a231f;
+    --color-stamp-ink-soft: #2a3138;
+  }
+}
+
+body {
+  background-color: var(--color-paper);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 15% 0%, color-mix(in srgb, var(--color-brass) 6%, transparent), transparent),
+    radial-gradient(ellipse 60% 50% at 100% 100%, color-mix(in srgb, var(--color-ink) 4%, transparent), transparent);
+  background-attachment: fixed;
+  color: var(--color-ink);
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-heading), serif;
+}
+
+.tabular {
+  font-family: var(--font-num), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ink-stamp badge: a rotated, double-bordered rubber-stamp look */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.18rem 0.6rem;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  font-family: var(--font-body), ui-sans-serif, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  transform: rotate(-1.5deg);
+  position: relative;
+  white-space: nowrap;
+}
+
+.stamp::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  opacity: 0.45;
+}
+
+.paper-card {
+  background-color: var(--color-paper-raised);
+  border: 1px solid var(--color-paper-line);
+  border-radius: 0.6rem;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-ink) 6%, transparent);
+}
