@@ -10,7 +10,7 @@ export function WholesaleInvoice({
   sale: CompletedSale;
   onNewSale: () => void;
 }) {
-  const { seller, sellerId } = useSeller();
+  const { seller } = useSeller();
   const balanceDue = sale.total - sale.paidAmount;
 
   return (
@@ -41,12 +41,14 @@ export function WholesaleInvoice({
       <div className="paper-card mx-auto max-w-2xl px-8 py-8 print:border-none print:shadow-none">
         <div className="flex items-start justify-between gap-4 border-b border-paper-line pb-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brass">
-              Sparkly POS
-            </p>
             <h2 className="text-xl font-semibold" dir="auto">
-              {seller?.business_name_location || `Seller ${sellerId}`}
+              {seller?.business_name_location}
             </h2>
+            {seller?.business_phone && (
+              <p className="tabular text-sm text-ink-soft">
+                {seller.business_phone}
+              </p>
+            )}
           </div>
           <div className="text-right">
             <p className="text-lg font-semibold">Invoice</p>
@@ -81,7 +83,7 @@ export function WholesaleInvoice({
               <th className="py-2 pr-2 font-medium">Code</th>
               <th className="py-2 pr-2 font-medium text-right">Quantity</th>
               <th className="py-2 pr-2 font-medium text-right">Unit Price</th>
-              <th className="py-2 pl-2 font-medium text-right">Subtotal</th>
+              <th className="py-2 pl-2 font-medium text-right">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -102,7 +104,7 @@ export function WholesaleInvoice({
                   {l.unitPrice.toLocaleString()}
                 </td>
                 <td className="tabular py-2 pl-2 text-right font-medium">
-                  {l.total.toLocaleString()}
+                  {(l.unitPrice * l.quantity).toLocaleString()}
                 </td>
               </tr>
             ))}

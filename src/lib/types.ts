@@ -5,6 +5,7 @@ export type Seller = {
   business_category: string | null;
   phone_number_id: string | null;
   meta_token: string | null;
+  business_phone: string | null;
 };
 
 export type SellerProduct = {

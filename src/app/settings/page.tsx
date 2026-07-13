@@ -6,6 +6,7 @@ import { useSeller } from "@/lib/SellerContext";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import type { PosSettings } from "@/lib/types";
 import { Toggle } from "@/components/ui/Toggle";
+import { InlineEdit } from "@/components/ui/InlineEdit";
 
 const DEFAULTS: Omit<PosSettings, "chat_id"> = {
   inventory_tracking_active: false,
@@ -42,8 +43,16 @@ const SWITCHES: Array<{
 ];
 
 export default function SettingsPage() {
-  const { sellerId } = useSeller();
+  const { sellerId, seller } = useSeller();
   const [settings, setSettings] = useState<PosSettings | null>(null);
+
+  const updateBusinessPhone = async (value: string) => {
+    if (!sellerId) return;
+    await supabase
+      .from("sellers")
+      .update({ business_phone: value || null })
+      .eq("chat_id", sellerId);
+  };
 
   const load = useCallback(() => {
     if (!sellerId) return;
@@ -83,6 +92,23 @@ export default function SettingsPage() {
           Everything here is off by default — turn on only what you want
           Ahmad to do automatically.
         </p>
+      </div>
+
+      <div className="paper-card mb-4 flex items-center justify-between gap-4 px-5 py-4">
+        <div>
+          <p className="font-medium">Business phone</p>
+          <p className="text-sm text-ink-soft">
+            Shown on receipts and invoices — not used for anything else.
+          </p>
+        </div>
+        <div className="w-48">
+          <InlineEdit
+            value={seller?.business_phone ?? ""}
+            placeholder="Add a phone number"
+            onSave={updateBusinessPhone}
+            align="right"
+          />
+        </div>
       </div>
 
       {!settings ? (

@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -9,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { supabase } from "./supabaseClient";
+import { useRealtimeRefresh } from "./useRealtimeRefresh";
 import type { Seller } from "./types";
 
 const STORAGE_KEY = "sparkly.sellerId";
@@ -43,6 +45,19 @@ export function SellerProvider({ children }: { children: ReactNode }) {
     setHydrated(true);
   }, []);
 
+  const loadSeller = useCallback(() => {
+    if (!sellerId) return;
+    supabase
+      .from("sellers")
+      .select("*")
+      .eq("chat_id", sellerId)
+      .maybeSingle()
+      .then(({ data }) => {
+        setSeller(data ?? null);
+        setLoading(false);
+      });
+  }, [sellerId]);
+
   useEffect(() => {
     if (!sellerId) {
       // Clears stale seller data when signing out / switching sellers.
@@ -50,23 +65,18 @@ export function SellerProvider({ children }: { children: ReactNode }) {
       setSeller(null);
       return;
     }
-    let cancelled = false;
     setLoading(true);
-    supabase
-      .from("sellers")
-      .select("*")
-      .eq("chat_id", sellerId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!cancelled) {
-          setSeller(data ?? null);
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [sellerId]);
+    // Fetches the seller row for the newly selected chat_id.
+    loadSeller();
+  }, [sellerId, loadSeller]);
+
+  // So edits made elsewhere (Settings' business phone, or Ahmad himself in
+  // chat) show up immediately without switching sellers or reloading.
+  useRealtimeRefresh(
+    "sellers",
+    sellerId ? `chat_id=eq.${sellerId}` : undefined,
+    loadSeller
+  );
 
   const setSellerId = (id: string | null) => {
     if (id) {

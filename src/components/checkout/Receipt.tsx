@@ -41,12 +41,14 @@ export function Receipt({
 
       <div className="paper-card mx-auto max-w-md px-6 py-6 print:border-none print:shadow-none">
         <div className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brass">
-            Sparkly POS
-          </p>
           <p className="font-semibold" dir="auto">
-            {seller?.business_name_location || "Receipt"}
+            {seller?.business_name_location}
           </p>
+          {seller?.business_phone && (
+            <p className="tabular text-xs text-ink-soft">
+              {seller.business_phone}
+            </p>
+          )}
           <p className="tabular text-xs text-ink-faint">
             {new Date(sale.completedAt).toLocaleString()}
           </p>
@@ -78,7 +80,7 @@ export function Receipt({
                 <span className="tabular text-ink-faint">×{l.quantity}</span>
               </span>
               <span className="tabular shrink-0">
-                {l.total.toLocaleString()}
+                {(l.unitPrice * l.quantity).toLocaleString()}
               </span>
             </div>
           ))}
