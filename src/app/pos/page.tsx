@@ -19,8 +19,9 @@ import {
 } from "@/components/checkout/cartMath";
 
 const PAYMENT_METHODS = ["Cash", "Bank Transfer", "Other"];
+const WHOLESALE = "wholesale";
 
-export default function CheckoutPage() {
+export default function PosPage() {
   const { sellerId } = useSeller();
   const [products, setProducts] = useState<SellerProduct[] | null>(null);
   const [customers, setCustomers] = useState<Customer[] | null>(null);
@@ -31,15 +32,17 @@ export default function CheckoutPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null
   );
-  const [selectedTierId, setSelectedTierId] = useState<string | null>(null);
+  // "" = retail, "wholesale" = each product's own wholesale_price, else a
+  // pricing_tiers.id (a % adjustment on top of retail_price).
+  const [selectedPricing, setSelectedPricing] = useState<string>("");
   const [discountMode, setDiscountMode] = useState<"percent" | "amount">(
     "percent"
   );
   const [discountValue, setDiscountValue] = useState("");
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0]);
-  const [paymentStatus, setPaymentStatus] = useState<"full" | "partial">(
-    "full"
-  );
+  const [paymentStatus, setPaymentStatus] = useState<
+    "full" | "partial" | "debt"
+  >("full");
   const [partialAmount, setPartialAmount] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +81,7 @@ export default function CheckoutPage() {
     setCustomers(customersRes.data ?? []);
     const tierRows = tiersRes.data ?? [];
     setTiers(tierRows);
-    setSelectedTierId((prev) => prev ?? tierRows.find((t) => t.is_default)?.id ?? null);
+    setSelectedPricing((prev) => prev || tierRows.find((t) => t.is_default)?.id || "");
     setPosSettings(
       settingsRes.data ?? {
         chat_id: sellerId,
@@ -100,9 +103,18 @@ export default function CheckoutPage() {
     load();
   }, [load]);
 
+  const isWholesale = selectedPricing === WHOLESALE;
   const tier = useMemo(
-    () => tiers?.find((t) => t.id === selectedTierId) ?? null,
-    [tiers, selectedTierId]
+    () => tiers?.find((t) => t.id === selectedPricing) ?? null,
+    [tiers, selectedPricing]
+  );
+
+  const priceFor = useCallback(
+    (product: SellerProduct) =>
+      isWholesale
+        ? product.wholesale_price ?? product.retail_price ?? 0
+        : unitPriceFor(product, tier),
+    [isWholesale, tier]
   );
 
   const lines = useMemo(() => {
@@ -111,7 +123,7 @@ export default function CheckoutPage() {
       .map((line) => {
         const product = products.find((p) => p.id === line.productId);
         if (!product) return null;
-        const unitPrice = unitPriceFor(product, tier);
+        const unitPrice = priceFor(product);
         return {
           product,
           quantity: line.quantity,
@@ -120,7 +132,7 @@ export default function CheckoutPage() {
         };
       })
       .filter((l): l is NonNullable<typeof l> => l !== null);
-  }, [cart, products, tier]);
+  }, [cart, products, priceFor]);
 
   const subtotal = lines.reduce((sum, l) => sum + l.lineSubtotal, 0);
   const discountNum = Number(discountValue) || 0;
@@ -130,7 +142,11 @@ export default function CheckoutPage() {
       : Math.min(discountNum, subtotal);
   const total = Math.max(0, subtotal - discountAmount);
   const paidAmount =
-    paymentStatus === "full" ? total : Math.min(Number(partialAmount) || 0, total);
+    paymentStatus === "full"
+      ? total
+      : paymentStatus === "debt"
+        ? 0
+        : Math.min(Number(partialAmount) || 0, total);
 
   const addToCart = (product: SellerProduct) => {
     setCart((prev) => {
@@ -253,7 +269,7 @@ export default function CheckoutPage() {
         total: lineTotals[i],
       })),
       customer: selectedCustomer,
-      tierName: tier?.name ?? null,
+      tierName: isWholesale ? "Wholesale" : tier?.name ?? null,
       subtotal,
       discountAmount,
       total,
@@ -274,18 +290,22 @@ export default function CheckoutPage() {
   return (
     <div>
       <div className="mb-5">
-        <h1 className="text-2xl font-semibold">Checkout</h1>
+        <h1 className="text-2xl font-semibold">POS</h1>
         <p className="text-sm text-ink-soft">
           Ring up an in-person or phone sale on the spot.
         </p>
       </div>
 
       {!products || !customers || !tiers ? (
-        <p className="text-ink-soft">Loading checkout…</p>
+        <p className="text-ink-soft">Loading POS…</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
           <div className="lg:col-span-3">
-            <ProductPicker products={products} onAdd={addToCart} />
+            <ProductPicker
+              products={products}
+              onAdd={addToCart}
+              priceFor={priceFor}
+            />
           </div>
 
           <div className="flex flex-col gap-3 lg:col-span-2">
@@ -369,11 +389,12 @@ export default function CheckoutPage() {
                   Pricing tier
                 </p>
                 <select
-                  value={selectedTierId ?? ""}
-                  onChange={(e) => setSelectedTierId(e.target.value || null)}
+                  value={selectedPricing}
+                  onChange={(e) => setSelectedPricing(e.target.value)}
                   className="w-full rounded-md border border-paper-line bg-paper px-3 py-2 text-sm outline-none focus:border-brass"
                 >
                   <option value="">Retail (no tier)</option>
+                  <option value={WHOLESALE}>Wholesale (product price)</option>
                   {tiers.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.name} ({t.adjustment_percent > 0 ? "+" : ""}
@@ -428,12 +449,15 @@ export default function CheckoutPage() {
                   <select
                     value={paymentStatus}
                     onChange={(e) =>
-                      setPaymentStatus(e.target.value as "full" | "partial")
+                      setPaymentStatus(
+                        e.target.value as "full" | "partial" | "debt"
+                      )
                     }
                     className="flex-1 rounded-md border border-paper-line bg-paper px-3 py-2 text-sm outline-none focus:border-brass"
                   >
                     <option value="full">Paid in full</option>
                     <option value="partial">Partial payment</option>
+                    <option value="debt">Debt (pay later)</option>
                   </select>
                 </div>
                 {paymentStatus === "partial" && (
@@ -469,6 +493,12 @@ export default function CheckoutPage() {
                   <div className="flex justify-between text-ink-soft">
                     <span>Paid now</span>
                     <span className="tabular">{paidAmount.toLocaleString()}</span>
+                  </div>
+                )}
+                {paymentStatus === "debt" && (
+                  <div className="flex justify-between text-stamp-red">
+                    <span>On debt</span>
+                    <span className="tabular">{total.toLocaleString()}</span>
                   </div>
                 )}
               </div>

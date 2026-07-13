@@ -8,7 +8,7 @@ import { useSeller } from "@/lib/SellerContext";
 
 const TABS = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/checkout", label: "Checkout" },
+  { href: "/pos", label: "POS" },
   { href: "/products", label: "Products" },
   { href: "/stock", label: "Stock" },
   { href: "/pricing-tiers", label: "Pricing Tiers" },

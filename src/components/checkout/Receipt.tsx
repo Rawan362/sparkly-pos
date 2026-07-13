@@ -115,13 +115,17 @@ export function Receipt({
             <span>Total</span>
             <span className="tabular">{sale.total.toLocaleString()}</span>
           </div>
-          <div className="flex justify-between text-ink-soft">
-            <span>Paid ({sale.paymentMethod})</span>
-            <span className="tabular">{sale.paidAmount.toLocaleString()}</span>
-          </div>
+          {sale.paidAmount > 0 && (
+            <div className="flex justify-between text-ink-soft">
+              <span>Paid ({sale.paymentMethod})</span>
+              <span className="tabular">
+                {sale.paidAmount.toLocaleString()}
+              </span>
+            </div>
+          )}
           {!sale.fullyPaid && (
             <div className="flex justify-between text-stamp-red">
-              <span>Balance due</span>
+              <span>{sale.paidAmount > 0 ? "Balance due" : "On debt"}</span>
               <span className="tabular">
                 {(sale.total - sale.paidAmount).toLocaleString()}
               </span>

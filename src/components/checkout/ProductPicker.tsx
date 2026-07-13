@@ -7,9 +7,11 @@ import { Stamp } from "@/components/ui/Stamp";
 export function ProductPicker({
   products,
   onAdd,
+  priceFor,
 }: {
   products: SellerProduct[];
   onAdd: (product: SellerProduct) => void;
+  priceFor: (product: SellerProduct) => number;
 }) {
   const [search, setSearch] = useState("");
 
@@ -53,7 +55,7 @@ export function ProductPicker({
                   {p.product_name}
                 </span>
                 <span className="tabular text-sm text-brass-dark">
-                  {(p.retail_price ?? 0).toLocaleString()}
+                  {priceFor(p).toLocaleString()}
                 </span>
                 {outOfStock ? (
                   <Stamp tone="red">Out of stock</Stamp>
