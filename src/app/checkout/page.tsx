@@ -1,0 +1,491 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { useSeller } from "@/lib/SellerContext";
+import type {
+  Customer,
+  PosSettings,
+  PricingTier,
+  SellerProduct,
+} from "@/lib/types";
+import { ProductPicker } from "@/components/checkout/ProductPicker";
+import { CustomerPicker } from "@/components/checkout/CustomerPicker";
+import { Receipt, type CompletedSale } from "@/components/checkout/Receipt";
+import {
+  apportion,
+  unitPriceFor,
+  type CartLine,
+} from "@/components/checkout/cartMath";
+
+const PAYMENT_METHODS = ["Cash", "Bank Transfer", "Other"];
+
+export default function CheckoutPage() {
+  const { sellerId } = useSeller();
+  const [products, setProducts] = useState<SellerProduct[] | null>(null);
+  const [customers, setCustomers] = useState<Customer[] | null>(null);
+  const [tiers, setTiers] = useState<PricingTier[] | null>(null);
+  const [posSettings, setPosSettings] = useState<PosSettings | null>(null);
+
+  const [cart, setCart] = useState<CartLine[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
+    null
+  );
+  const [selectedTierId, setSelectedTierId] = useState<string | null>(null);
+  const [discountMode, setDiscountMode] = useState<"percent" | "amount">(
+    "percent"
+  );
+  const [discountValue, setDiscountValue] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0]);
+  const [paymentStatus, setPaymentStatus] = useState<"full" | "partial">(
+    "full"
+  );
+  const [partialAmount, setPartialAmount] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [completedSale, setCompletedSale] = useState<CompletedSale | null>(
+    null
+  );
+
+  const load = useCallback(async () => {
+    if (!sellerId) return;
+    const [productsRes, customersRes, tiersRes, settingsRes] =
+      await Promise.all([
+        supabase
+          .from("seller_products")
+          .select("*")
+          .eq("chat_id", sellerId)
+          .eq("is_active", true)
+          .order("product_name", { ascending: true }),
+        supabase
+          .from("customers")
+          .select("*")
+          .eq("seller_id", sellerId)
+          .order("name", { ascending: true }),
+        supabase
+          .from("pricing_tiers")
+          .select("*")
+          .eq("chat_id", sellerId)
+          .order("name", { ascending: true }),
+        supabase
+          .from("pos_settings")
+          .select("*")
+          .eq("chat_id", sellerId)
+          .maybeSingle(),
+      ]);
+
+    setProducts(productsRes.data ?? []);
+    setCustomers(customersRes.data ?? []);
+    const tierRows = tiersRes.data ?? [];
+    setTiers(tierRows);
+    setSelectedTierId((prev) => prev ?? tierRows.find((t) => t.is_default)?.id ?? null);
+    setPosSettings(
+      settingsRes.data ?? {
+        chat_id: sellerId,
+        inventory_tracking_active: false,
+        low_stock_alerts_active: false,
+        low_stock_default_threshold: null,
+        auto_invoice_active: false,
+        invoice_prefix: null,
+        next_invoice_number: null,
+      }
+    );
+  }, [sellerId]);
+
+  useEffect(() => {
+    // Loads the seller's catalog/customers/tiers once for this checkout
+    // session -- intentionally not live-synced, so an in-progress sale
+    // isn't disrupted by unrelated changes elsewhere while ringing it up.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+  }, [load]);
+
+  const tier = useMemo(
+    () => tiers?.find((t) => t.id === selectedTierId) ?? null,
+    [tiers, selectedTierId]
+  );
+
+  const lines = useMemo(() => {
+    if (!products) return [];
+    return cart
+      .map((line) => {
+        const product = products.find((p) => p.id === line.productId);
+        if (!product) return null;
+        const unitPrice = unitPriceFor(product, tier);
+        return {
+          product,
+          quantity: line.quantity,
+          unitPrice,
+          lineSubtotal: unitPrice * line.quantity,
+        };
+      })
+      .filter((l): l is NonNullable<typeof l> => l !== null);
+  }, [cart, products, tier]);
+
+  const subtotal = lines.reduce((sum, l) => sum + l.lineSubtotal, 0);
+  const discountNum = Number(discountValue) || 0;
+  const discountAmount =
+    discountMode === "percent"
+      ? subtotal * (discountNum / 100)
+      : Math.min(discountNum, subtotal);
+  const total = Math.max(0, subtotal - discountAmount);
+  const paidAmount =
+    paymentStatus === "full" ? total : Math.min(Number(partialAmount) || 0, total);
+
+  const addToCart = (product: SellerProduct) => {
+    setCart((prev) => {
+      const existing = prev.find((l) => l.productId === product.id);
+      const cap = product.track_stock ? product.stock_quantity ?? 0 : Infinity;
+      if (existing) {
+        if (existing.quantity >= cap) return prev;
+        return prev.map((l) =>
+          l.productId === product.id ? { ...l, quantity: l.quantity + 1 } : l
+        );
+      }
+      if (cap <= 0) return prev;
+      return [...prev, { productId: product.id, quantity: 1 }];
+    });
+  };
+
+  const updateQuantity = (productId: string, next: number) => {
+    setCart((prev) => {
+      if (next <= 0) return prev.filter((l) => l.productId !== productId);
+      const product = products?.find((p) => p.id === productId);
+      const cap =
+        product?.track_stock ? product.stock_quantity ?? 0 : Infinity;
+      return prev.map((l) =>
+        l.productId === productId
+          ? { ...l, quantity: Math.min(next, cap) }
+          : l
+      );
+    });
+  };
+
+  const removeLine = (productId: string) =>
+    setCart((prev) => prev.filter((l) => l.productId !== productId));
+
+  const resetForNewSale = () => {
+    setCart([]);
+    setSelectedCustomer(null);
+    setDiscountValue("");
+    setDiscountMode("percent");
+    setPaymentStatus("full");
+    setPartialAmount("");
+    setCompletedSale(null);
+    setError(null);
+  };
+
+  const completeSale = async () => {
+    if (!sellerId || lines.length === 0) return;
+    setSaving(true);
+    setError(null);
+
+    const checkoutId = crypto.randomUUID();
+    const effectiveDiscountPercent = subtotal > 0 ? (discountAmount / subtotal) * 100 : null;
+    const now = new Date().toISOString();
+
+    let invoiceNumber: string | null = null;
+    if (posSettings?.auto_invoice_active) {
+      const nextNumber = posSettings.next_invoice_number ?? 1;
+      invoiceNumber = `${posSettings.invoice_prefix ?? ""}${nextNumber}`;
+    }
+
+    const lineTotals = apportion(lines.map((l) => l.lineSubtotal), total);
+    const linePaid = apportion(lines.map((l) => l.lineSubtotal), paidAmount);
+    const fullyPaid = paidAmount >= total - 0.005;
+
+    const rows = lines.map((l, i) => ({
+      seller_id: sellerId,
+      phone: selectedCustomer?.phone ?? null,
+      customer_id: null,
+      product_name: l.product.product_name,
+      product_price: Math.round(l.unitPrice * 100) / 100,
+      quantity: l.quantity,
+      order_total: lineTotals[i],
+      delivery_address: null,
+      order_status: "DELIVERED",
+      confirmed_at: now,
+      shipped_at: now,
+      cod_collected: paymentMethod === "Cash" && fullyPaid,
+      checkout_id: checkoutId,
+      pricing_tier_id: tier?.id ?? null,
+      discount_percent: effectiveDiscountPercent,
+      payment_method: paymentMethod,
+      amount_paid: linePaid[i],
+      invoice_number: invoiceNumber,
+    }));
+
+    const { error: insertError } = await supabase.from("orders").insert(rows);
+    if (insertError) {
+      setSaving(false);
+      setError(insertError.message);
+      return;
+    }
+
+    await Promise.all(
+      lines
+        .filter((l) => l.product.track_stock)
+        .map((l) =>
+          supabase
+            .from("seller_products")
+            .update({
+              stock_quantity: Math.max(
+                0,
+                (l.product.stock_quantity ?? 0) - l.quantity
+              ),
+            })
+            .eq("id", l.product.id)
+        )
+    );
+
+    if (posSettings?.auto_invoice_active) {
+      await supabase
+        .from("pos_settings")
+        .update({ next_invoice_number: (posSettings.next_invoice_number ?? 1) + 1 })
+        .eq("chat_id", sellerId);
+    }
+
+    setCompletedSale({
+      lines: lines.map((l, i) => ({
+        name: l.product.product_name,
+        quantity: l.quantity,
+        unitPrice: l.unitPrice,
+        total: lineTotals[i],
+      })),
+      customer: selectedCustomer,
+      tierName: tier?.name ?? null,
+      subtotal,
+      discountAmount,
+      total,
+      paidAmount,
+      paymentMethod,
+      fullyPaid,
+      invoiceNumber,
+      completedAt: now,
+    });
+    setSaving(false);
+    load();
+  };
+
+  if (completedSale) {
+    return <Receipt sale={completedSale} onNewSale={resetForNewSale} />;
+  }
+
+  return (
+    <div>
+      <div className="mb-5">
+        <h1 className="text-2xl font-semibold">Checkout</h1>
+        <p className="text-sm text-ink-soft">
+          Ring up an in-person or phone sale on the spot.
+        </p>
+      </div>
+
+      {!products || !customers || !tiers ? (
+        <p className="text-ink-soft">Loading checkout…</p>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+          <div className="lg:col-span-3">
+            <ProductPicker products={products} onAdd={addToCart} />
+          </div>
+
+          <div className="flex flex-col gap-3 lg:col-span-2">
+            <div className="paper-card px-4 py-4">
+              <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-ink-soft">
+                Ticket
+              </h2>
+              {lines.length === 0 ? (
+                <p className="py-6 text-center text-sm text-ink-faint">
+                  Cart is empty — tap a product to add it.
+                </p>
+              ) : (
+                <div className="flex flex-col divide-y divide-paper-line">
+                  {lines.map((l) => (
+                    <div
+                      key={l.product.id}
+                      className="flex items-center justify-between gap-2 py-2"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium" dir="auto">
+                          {l.product.product_name}
+                        </p>
+                        <p className="tabular text-xs text-ink-faint">
+                          {l.unitPrice.toLocaleString()} each
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateQuantity(l.product.id, l.quantity - 1)
+                          }
+                          className="h-6 w-6 rounded border border-paper-line text-ink-soft hover:border-brass"
+                        >
+                          −
+                        </button>
+                        <span className="tabular w-6 text-center text-sm">
+                          {l.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateQuantity(l.product.id, l.quantity + 1)
+                          }
+                          className="h-6 w-6 rounded border border-paper-line text-ink-soft hover:border-brass"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <p className="tabular w-16 shrink-0 text-right text-sm font-medium">
+                        {l.lineSubtotal.toLocaleString()}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => removeLine(l.product.id)}
+                        aria-label={`Remove ${l.product.product_name}`}
+                        className="shrink-0 text-xs text-stamp-red hover:opacity-70"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="paper-card flex flex-col gap-3 px-4 py-4">
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                  Customer
+                </p>
+                <CustomerPicker
+                  customers={customers}
+                  selected={selectedCustomer}
+                  onSelect={setSelectedCustomer}
+                />
+              </div>
+
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                  Pricing tier
+                </p>
+                <select
+                  value={selectedTierId ?? ""}
+                  onChange={(e) => setSelectedTierId(e.target.value || null)}
+                  className="w-full rounded-md border border-paper-line bg-paper px-3 py-2 text-sm outline-none focus:border-brass"
+                >
+                  <option value="">Retail (no tier)</option>
+                  {tiers.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.adjustment_percent > 0 ? "+" : ""}
+                      {t.adjustment_percent}%)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                  Discount
+                </p>
+                <div className="flex gap-2">
+                  <select
+                    value={discountMode}
+                    onChange={(e) =>
+                      setDiscountMode(e.target.value as "percent" | "amount")
+                    }
+                    className="rounded-md border border-paper-line bg-paper px-2 py-2 text-sm outline-none focus:border-brass"
+                  >
+                    <option value="percent">%</option>
+                    <option value="amount">Amount</option>
+                  </select>
+                  <input
+                    type="number"
+                    min="0"
+                    value={discountValue}
+                    onChange={(e) => setDiscountValue(e.target.value)}
+                    placeholder="0"
+                    className="w-full rounded-md border border-paper-line bg-paper px-3 py-2 text-sm tabular outline-none focus:border-brass"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                  Payment
+                </p>
+                <div className="flex gap-2">
+                  <select
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="flex-1 rounded-md border border-paper-line bg-paper px-3 py-2 text-sm outline-none focus:border-brass"
+                  >
+                    {PAYMENT_METHODS.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={paymentStatus}
+                    onChange={(e) =>
+                      setPaymentStatus(e.target.value as "full" | "partial")
+                    }
+                    className="flex-1 rounded-md border border-paper-line bg-paper px-3 py-2 text-sm outline-none focus:border-brass"
+                  >
+                    <option value="full">Paid in full</option>
+                    <option value="partial">Partial payment</option>
+                  </select>
+                </div>
+                {paymentStatus === "partial" && (
+                  <input
+                    type="number"
+                    min="0"
+                    value={partialAmount}
+                    onChange={(e) => setPartialAmount(e.target.value)}
+                    placeholder="Amount paid now"
+                    className="mt-2 w-full rounded-md border border-paper-line bg-paper px-3 py-2 text-sm tabular outline-none focus:border-brass"
+                  />
+                )}
+              </div>
+
+              <div className="border-t border-paper-line pt-3 text-sm">
+                <div className="flex justify-between text-ink-soft">
+                  <span>Subtotal</span>
+                  <span className="tabular">{subtotal.toLocaleString()}</span>
+                </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-ink-soft">
+                    <span>Discount</span>
+                    <span className="tabular">
+                      −{discountAmount.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between text-lg font-semibold">
+                  <span>Total</span>
+                  <span className="tabular">{total.toLocaleString()}</span>
+                </div>
+                {paymentStatus === "partial" && (
+                  <div className="flex justify-between text-ink-soft">
+                    <span>Paid now</span>
+                    <span className="tabular">{paidAmount.toLocaleString()}</span>
+                  </div>
+                )}
+              </div>
+
+              {error && <p className="text-sm text-stamp-red">{error}</p>}
+
+              <button
+                onClick={completeSale}
+                disabled={saving || lines.length === 0}
+                className="rounded-md bg-ink px-4 py-3 text-sm font-semibold uppercase tracking-wide text-paper-raised disabled:opacity-40"
+              >
+                {saving ? "Completing sale…" : "Complete Sale"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

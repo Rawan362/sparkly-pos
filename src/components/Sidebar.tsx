@@ -8,6 +8,7 @@ import { useSeller } from "@/lib/SellerContext";
 
 const TABS = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/checkout", label: "Checkout" },
   { href: "/products", label: "Products" },
   { href: "/stock", label: "Stock" },
   { href: "/pricing-tiers", label: "Pricing Tiers" },
@@ -72,7 +73,7 @@ export function Sidebar() {
         onClick={() => setCollapsed(!collapsed)}
         aria-label={collapsed ? "Show sidebar" : "Hide sidebar"}
         className={clsx(
-          "fixed top-1/2 z-20 hidden -translate-y-1/2 rounded-r-md border border-l-0 border-paper-line bg-paper-raised px-1 py-3 text-xs text-ink-faint shadow-sm transition-[left] duration-200 hover:text-brass-dark sm:block",
+          "fixed top-1/2 z-20 hidden -translate-y-1/2 rounded-r-md border border-l-0 border-paper-line bg-paper-raised px-1 py-3 text-xs text-ink-faint shadow-sm transition-[left] duration-200 hover:text-brass-dark sm:block print:hidden",
           collapsed ? "left-0" : "left-60"
         )}
       >

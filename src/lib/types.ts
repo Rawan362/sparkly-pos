@@ -94,4 +94,13 @@ export type Order = {
   cod_collected: boolean | null;
   seller_id: string;
   created_at: string;
+  // Added for the POS Checkout screen -- null on every order Ahmad creates
+  // via chat, since none of these apply to that flow.
+  checkout_id: string | null;
+  quantity: number | null;
+  pricing_tier_id: string | null;
+  discount_percent: number | null;
+  payment_method: string | null;
+  amount_paid: number | null;
+  invoice_number: string | null;
 };
