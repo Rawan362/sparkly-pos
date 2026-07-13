@@ -72,18 +72,46 @@ export function Receipt({
           </p>
         )}
 
-        <div className="flex flex-col gap-1.5">
-          {sale.lines.map((l, i) => (
-            <div key={i} className="flex justify-between text-sm">
-              <span className="min-w-0 flex-1 truncate pr-2" dir="auto">
-                {l.name}{" "}
-                <span className="tabular text-ink-faint">×{l.quantity}</span>
-              </span>
-              <span className="tabular shrink-0">
-                {(l.unitPrice * l.quantity).toLocaleString()}
-              </span>
-            </div>
-          ))}
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[380px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-paper-line text-left text-xs uppercase tracking-wide text-ink-faint">
+                <th className="py-1.5 pr-2 font-medium">#</th>
+                <th className="py-1.5 pr-2 font-medium">Product</th>
+                <th className="py-1.5 pr-2 font-medium">Code</th>
+                <th className="py-1.5 pr-2 font-medium text-right">Quantity</th>
+                <th className="py-1.5 pr-2 font-medium text-right">
+                  Unit Price
+                </th>
+                <th className="py-1.5 pl-2 font-medium text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sale.lines.map((l, i) => (
+                <tr key={i} className="border-b border-paper-line last:border-0">
+                  <td className="tabular py-1.5 pr-2 text-ink-faint">
+                    {i + 1}
+                  </td>
+                  <td className="py-1.5 pr-2" dir="auto">
+                    {l.name}
+                  </td>
+                  <td className="tabular py-1.5 pr-2 text-ink-soft">
+                    {l.code || "—"}
+                  </td>
+                  <td className="tabular py-1.5 pr-2 text-right">
+                    {l.quantity.toFixed(l.unitLabel ? 2 : 0)}
+                    {l.unitLabel ? ` ${l.unitLabel}` : ""}
+                  </td>
+                  <td className="tabular py-1.5 pr-2 text-right">
+                    {l.unitPrice.toLocaleString()}
+                  </td>
+                  <td className="tabular py-1.5 pl-2 text-right font-medium">
+                    {(l.unitPrice * l.quantity).toLocaleString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         <div className="my-4 border-t border-dashed border-paper-line" />
