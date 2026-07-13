@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabaseClient";
 import { useSeller } from "@/lib/SellerContext";
@@ -9,6 +9,12 @@ import type { OrderStatus } from "@/lib/types";
 import { StatTile } from "@/components/dashboard/StatTile";
 import type { SalesPoint } from "@/components/dashboard/SalesChart";
 import type { StatusCount } from "@/components/dashboard/OrdersStatusChart";
+import {
+  DateRangeFilter,
+  isWithinRange,
+  DAY_MS,
+  type DateRangeKey,
+} from "@/components/dashboard/DateRangeFilter";
 
 // Both charts measure the DOM (ResponsiveContainer) and only make sense
 // client-side, so they're excluded from the static prerender entirely.
@@ -25,7 +31,6 @@ const OrdersStatusChart = dynamic(
 );
 
 const STATUSES: OrderStatus[] = ["PENDING", "SHIPPED", "DELIVERED", "CANCELLED"];
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 type OrderRow = {
   order_total: number | null;
@@ -33,22 +38,22 @@ type OrderRow = {
   created_at: string;
 };
 
-type Summary = {
-  totalSales: number;
-  totalOrders: number;
-  pendingOrders: number;
+type ExpenseRow = { amount: number | null; expense_date: string };
+
+type RawData = {
+  orders: OrderRow[];
+  expenses: ExpenseRow[];
   totalCustomers: number;
   vipCustomers: number;
   lowStockItems: number;
-  totalExpenses: number;
   salesByDay: SalesPoint[];
   salesByMonth: SalesPoint[];
-  statusCounts: StatusCount[];
 };
 
 export default function DashboardPage() {
   const { sellerId, seller } = useSeller();
-  const [summary, setSummary] = useState<Summary | null>(null);
+  const [raw, setRaw] = useState<RawData | null>(null);
+  const [range, setRange] = useState<DateRangeKey>("all");
 
   const load = useCallback(async () => {
     if (!sellerId) return;
@@ -73,24 +78,14 @@ export default function DashboardPage() {
           .select("stock_quantity, low_stock_threshold")
           .eq("chat_id", sellerId)
           .eq("track_stock", true),
-        supabase.from("expenses").select("amount").eq("chat_id", sellerId),
+        supabase
+          .from("expenses")
+          .select("amount, expense_date")
+          .eq("chat_id", sellerId),
       ]);
 
     const orders = (ordersRes.data ?? []) as OrderRow[];
-    const totalExpenses = (expensesRes.data ?? []).reduce(
-      (sum, e) => sum + (e.amount ?? 0),
-      0
-    );
-    const totalSales = orders.reduce((sum, o) => sum + (o.order_total ?? 0), 0);
-    const totalOrders = orders.length;
-    const pendingOrders = orders.filter(
-      (o) => o.order_status === "PENDING"
-    ).length;
-
-    const statusCounts: StatusCount[] = STATUSES.map((status) => ({
-      status,
-      count: orders.filter((o) => o.order_status === status).length,
-    }));
+    const expenses = (expensesRes.data ?? []) as ExpenseRow[];
 
     const lowStockItems = (productsRes.data ?? []).filter(
       (p) =>
@@ -146,17 +141,14 @@ export default function DashboardPage() {
       ([date, total]) => ({ date, total, label: monthLabels.get(date)! })
     );
 
-    setSummary({
-      totalSales,
-      totalOrders,
-      pendingOrders,
+    setRaw({
+      orders,
+      expenses,
       totalCustomers: customersCountRes.count ?? 0,
       vipCustomers: vipCountRes.count ?? 0,
       lowStockItems,
-      totalExpenses,
-      salesByDay: totalOrders === 0 ? [] : salesByDay,
-      salesByMonth: totalOrders === 0 ? [] : salesByMonth,
-      statusCounts,
+      salesByDay: orders.length === 0 ? [] : salesByDay,
+      salesByMonth: orders.length === 0 ? [] : salesByMonth,
     });
   }, [sellerId]);
 
@@ -183,63 +175,95 @@ export default function DashboardPage() {
     load
   );
 
+  // Recomputed client-side whenever the date range changes -- no refetch,
+  // since `raw` already holds the seller's full order/expense history.
+  const filtered = useMemo(() => {
+    if (!raw) return null;
+    const orders = raw.orders.filter((o) => isWithinRange(o.created_at, range));
+    const expenses = raw.expenses.filter((e) =>
+      isWithinRange(e.expense_date, range)
+    );
+
+    const totalSales = orders.reduce((sum, o) => sum + (o.order_total ?? 0), 0);
+    const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount ?? 0), 0);
+    const pendingOrders = orders.filter(
+      (o) => o.order_status === "PENDING"
+    ).length;
+    const statusCounts: StatusCount[] = STATUSES.map((status) => ({
+      status,
+      count: orders.filter((o) => o.order_status === status).length,
+    }));
+
+    return {
+      totalSales,
+      totalOrders: orders.length,
+      pendingOrders,
+      totalExpenses,
+      statusCounts,
+    };
+  }, [raw, range]);
+
   return (
     <div>
-      <div className="mb-5">
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <p className="text-sm text-ink-soft">
-          {seller?.business_name_location
-            ? `A quick look at ${seller.business_name_location}.`
-            : "A quick look at how business is going."}
-        </p>
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold">Dashboard</h1>
+          <p className="text-sm text-ink-soft">
+            {seller?.business_name_location
+              ? `A quick look at ${seller.business_name_location}.`
+              : "A quick look at how business is going."}
+          </p>
+        </div>
+        <DateRangeFilter value={range} onChange={setRange} />
       </div>
 
-      {!summary ? (
+      {!raw || !filtered ? (
         <p className="text-ink-soft">Loading dashboard…</p>
       ) : (
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <StatTile
               label="Total sales"
-              value={summary.totalSales.toLocaleString()}
+              value={filtered.totalSales.toLocaleString()}
               tone="brass"
             />
             <StatTile
               label="Total orders"
-              value={summary.totalOrders.toLocaleString()}
+              value={filtered.totalOrders.toLocaleString()}
             />
             <StatTile
               label="Pending orders"
-              value={summary.pendingOrders.toLocaleString()}
-              tone={summary.pendingOrders > 0 ? "brass" : "ink"}
+              value={filtered.pendingOrders.toLocaleString()}
+              tone={filtered.pendingOrders > 0 ? "brass" : "ink"}
             />
             <StatTile
               label="Total expenses"
-              value={summary.totalExpenses.toLocaleString()}
+              value={filtered.totalExpenses.toLocaleString()}
+              href="/expenses"
             />
             <StatTile
               label="Total customers"
-              value={summary.totalCustomers.toLocaleString()}
+              value={raw.totalCustomers.toLocaleString()}
             />
             <StatTile
               label="VIP customers"
-              value={summary.vipCustomers.toLocaleString()}
+              value={raw.vipCustomers.toLocaleString()}
               tone="green"
             />
             <StatTile
               label="Low stock items"
-              value={summary.lowStockItems.toLocaleString()}
-              tone={summary.lowStockItems > 0 ? "red" : "ink"}
+              value={raw.lowStockItems.toLocaleString()}
+              tone={raw.lowStockItems > 0 ? "red" : "ink"}
             />
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <SalesChart data={summary.salesByDay} />
-            <OrdersStatusChart data={summary.statusCounts} />
+            <SalesChart data={raw.salesByDay} />
+            <OrdersStatusChart data={filtered.statusCounts} />
           </div>
 
           <SalesChart
-            data={summary.salesByMonth}
+            data={raw.salesByMonth}
             title="Sales — last 12 months"
             emptyMessage="No sales yet — a year of history will build up here once Ahmad starts closing deals."
           />

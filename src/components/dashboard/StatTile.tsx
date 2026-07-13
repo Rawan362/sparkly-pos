@@ -1,11 +1,15 @@
+import Link from "next/link";
+
 export function StatTile({
   label,
   value,
   tone = "ink",
+  href,
 }: {
   label: string;
   value: string;
   tone?: "ink" | "brass" | "green" | "red";
+  href?: string;
 }) {
   const toneClass = {
     ink: "text-ink",
@@ -14,14 +18,27 @@ export function StatTile({
     red: "text-stamp-red",
   }[tone];
 
-  return (
-    <div className="paper-card px-5 py-4">
+  const content = (
+    <>
       <p className="text-xs font-semibold uppercase tracking-wide text-ink-faint">
         {label}
       </p>
       <p className={`tabular mt-1 text-2xl font-semibold ${toneClass}`}>
         {value}
       </p>
-    </div>
+    </>
   );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="paper-card block px-5 py-4 transition-colors hover:border-brass"
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return <div className="paper-card px-5 py-4">{content}</div>;
 }
