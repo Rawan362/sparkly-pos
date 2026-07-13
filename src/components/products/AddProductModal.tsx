@@ -7,6 +7,7 @@ import { Field, fieldInputClass, fieldTextareaClass } from "@/components/ui/Fiel
 
 const EMPTY = {
   product_name: "",
+  product_code: "",
   product_category: "",
   wholesale_price: "",
   retail_price: "",
@@ -42,6 +43,7 @@ export function AddProductModal({
     await supabase.from("seller_products").insert({
       chat_id: sellerId,
       product_name: form.product_name.trim(),
+      product_code: form.product_code.trim() || null,
       product_category: form.product_category.trim() || null,
       wholesale_price: form.wholesale_price === "" ? null : Number(form.wholesale_price),
       retail_price: form.retail_price === "" ? null : Number(form.retail_price),
@@ -79,6 +81,14 @@ export function AddProductModal({
               value={form.product_category}
               onChange={set("product_category")}
               placeholder="Fragrances"
+              className={fieldInputClass}
+            />
+          </Field>
+          <Field label="Product code" className="col-span-2">
+            <input
+              value={form.product_code}
+              onChange={set("product_code")}
+              placeholder="HP1056"
               className={fieldInputClass}
             />
           </Field>

@@ -11,6 +11,7 @@ export type SellerProduct = {
   id: string;
   chat_id: string;
   product_name: string;
+  product_code: string | null;
   product_category: string | null;
   wholesale_price: number | null;
   retail_price: number | null;

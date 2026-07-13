@@ -5,17 +5,20 @@ import { supabase } from "@/lib/supabaseClient";
 import { useSeller } from "@/lib/SellerContext";
 import type {
   Customer,
+  CustomUnit,
   PosSettings,
   PricingTier,
   SellerProduct,
 } from "@/lib/types";
 import { ProductPicker } from "@/components/checkout/ProductPicker";
 import { CustomerPicker } from "@/components/checkout/CustomerPicker";
-import { Receipt, type CompletedSale } from "@/components/checkout/Receipt";
+import { Receipt } from "@/components/checkout/Receipt";
+import { WholesaleInvoice } from "@/components/checkout/WholesaleInvoice";
 import {
   apportion,
   unitPriceFor,
   type CartLine,
+  type CompletedSale,
 } from "@/components/checkout/cartMath";
 
 const PAYMENT_METHODS = ["Cash", "Bank Transfer", "Other"];
@@ -26,6 +29,7 @@ export default function PosPage() {
   const [products, setProducts] = useState<SellerProduct[] | null>(null);
   const [customers, setCustomers] = useState<Customer[] | null>(null);
   const [tiers, setTiers] = useState<PricingTier[] | null>(null);
+  const [units, setUnits] = useState<CustomUnit[] | null>(null);
   const [posSettings, setPosSettings] = useState<PosSettings | null>(null);
 
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -52,7 +56,7 @@ export default function PosPage() {
 
   const load = useCallback(async () => {
     if (!sellerId) return;
-    const [productsRes, customersRes, tiersRes, settingsRes] =
+    const [productsRes, customersRes, tiersRes, unitsRes, settingsRes] =
       await Promise.all([
         supabase
           .from("seller_products")
@@ -70,6 +74,7 @@ export default function PosPage() {
           .select("*")
           .eq("chat_id", sellerId)
           .order("name", { ascending: true }),
+        supabase.from("custom_units").select("*").eq("chat_id", sellerId),
         supabase
           .from("pos_settings")
           .select("*")
@@ -79,9 +84,11 @@ export default function PosPage() {
 
     setProducts(productsRes.data ?? []);
     setCustomers(customersRes.data ?? []);
-    const tierRows = tiersRes.data ?? [];
-    setTiers(tierRows);
-    setSelectedPricing((prev) => prev || tierRows.find((t) => t.is_default)?.id || "");
+    // Pricing always opens on Retail regardless of any tier marked
+    // "default" on the Pricing Tiers page -- Wholesale (or a custom tier)
+    // is always an explicit choice the cashier makes per sale.
+    setTiers(tiersRes.data ?? []);
+    setUnits(unitsRes.data ?? []);
     setPosSettings(
       settingsRes.data ?? {
         chat_id: sellerId,
@@ -264,12 +271,16 @@ export default function PosPage() {
     setCompletedSale({
       lines: lines.map((l, i) => ({
         name: l.product.product_name,
+        code: l.product.product_code,
         quantity: l.quantity,
+        unitLabel:
+          units?.find((u) => u.id === l.product.unit_id)?.short_name ?? null,
         unitPrice: l.unitPrice,
         total: lineTotals[i],
       })),
       customer: selectedCustomer,
       tierName: isWholesale ? "Wholesale" : tier?.name ?? null,
+      isWholesale,
       subtotal,
       discountAmount,
       total,
@@ -284,7 +295,11 @@ export default function PosPage() {
   };
 
   if (completedSale) {
-    return <Receipt sale={completedSale} onNewSale={resetForNewSale} />;
+    return completedSale.isWholesale ? (
+      <WholesaleInvoice sale={completedSale} onNewSale={resetForNewSale} />
+    ) : (
+      <Receipt sale={completedSale} onNewSale={resetForNewSale} />
+    );
   }
 
   return (
@@ -296,7 +311,7 @@ export default function PosPage() {
         </p>
       </div>
 
-      {!products || !customers || !tiers ? (
+      {!products || !customers || !tiers || !units ? (
         <p className="text-ink-soft">Loading POS…</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">

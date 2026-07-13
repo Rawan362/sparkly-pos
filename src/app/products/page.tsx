@@ -88,6 +88,7 @@ export default function ProductsPage() {
             <thead>
               <tr className="border-b border-paper-line text-left text-xs uppercase tracking-wide text-ink-faint">
                 <th className="px-4 py-3 font-medium">Product</th>
+                <th className="px-4 py-3 font-medium">Code</th>
                 <th className="px-4 py-3 font-medium">Category</th>
                 <th className="px-4 py-3 font-medium text-right">Wholesale</th>
                 <th className="px-4 py-3 font-medium text-right">Retail</th>
@@ -105,6 +106,13 @@ export default function ProductsPage() {
                     <InlineEdit
                       value={p.product_name ?? ""}
                       onSave={(v) => update(p.id, { product_name: v })}
+                    />
+                  </td>
+                  <td className="tabular px-2 py-1.5 text-ink-soft">
+                    <InlineEdit
+                      value={p.product_code ?? ""}
+                      placeholder="—"
+                      onSave={(v) => update(p.id, { product_code: v })}
                     />
                   </td>
                   <td className="px-2 py-1.5 text-ink-soft" dir="auto">

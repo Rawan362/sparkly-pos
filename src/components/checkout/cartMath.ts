@@ -1,6 +1,28 @@
-import type { PricingTier, SellerProduct } from "@/lib/types";
+import type { Customer, PricingTier, SellerProduct } from "@/lib/types";
 
 export type CartLine = { productId: string; quantity: number };
+
+export type CompletedSale = {
+  lines: {
+    name: string;
+    code: string | null;
+    quantity: number;
+    unitLabel: string | null;
+    unitPrice: number;
+    total: number;
+  }[];
+  customer: Customer | null;
+  tierName: string | null;
+  isWholesale: boolean;
+  subtotal: number;
+  discountAmount: number;
+  total: number;
+  paidAmount: number;
+  paymentMethod: string;
+  fullyPaid: boolean;
+  invoiceNumber: string | null;
+  completedAt: string;
+};
 
 export function unitPriceFor(
   product: SellerProduct,

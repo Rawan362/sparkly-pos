@@ -1,21 +1,9 @@
 "use client";
 
 import { useSeller } from "@/lib/SellerContext";
-import type { Customer } from "@/lib/types";
+import type { CompletedSale } from "./cartMath";
 
-export type CompletedSale = {
-  lines: { name: string; quantity: number; unitPrice: number; total: number }[];
-  customer: Customer | null;
-  tierName: string | null;
-  subtotal: number;
-  discountAmount: number;
-  total: number;
-  paidAmount: number;
-  paymentMethod: string;
-  fullyPaid: boolean;
-  invoiceNumber: string | null;
-  completedAt: string;
-};
+export type { CompletedSale };
 
 export function Receipt({
   sale,
