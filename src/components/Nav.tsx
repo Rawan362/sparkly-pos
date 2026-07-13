@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useSeller } from "@/lib/SellerContext";
 
 const TABS = [
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/products", label: "Products" },
   { href: "/stock", label: "Stock" },
   { href: "/pricing-tiers", label: "Pricing Tiers" },
