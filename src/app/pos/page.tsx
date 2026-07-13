@@ -12,6 +12,7 @@ import type {
 } from "@/lib/types";
 import { ProductPicker } from "@/components/checkout/ProductPicker";
 import { CustomerPicker } from "@/components/checkout/CustomerPicker";
+import { QuantityStepper } from "@/components/checkout/QuantityStepper";
 import { Receipt } from "@/components/checkout/Receipt";
 import { WholesaleInvoice } from "@/components/checkout/WholesaleInvoice";
 import {
@@ -361,9 +362,12 @@ export default function PosPage() {
                         >
                           −
                         </button>
-                        <span className="tabular w-6 text-center text-sm">
-                          {l.quantity}
-                        </span>
+                        <QuantityStepper
+                          quantity={l.quantity}
+                          onChange={(next) =>
+                            updateQuantity(l.product.id, next)
+                          }
+                        />
                         <button
                           type="button"
                           onClick={() =>
