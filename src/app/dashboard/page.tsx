@@ -14,7 +14,17 @@ import {
   isWithinRange,
   DAY_MS,
   type DateRangeKey,
+  type CustomRange,
 } from "@/components/dashboard/DateRangeFilter";
+
+function defaultCustomRange(): CustomRange {
+  const end = new Date();
+  const start = new Date(end.getTime() - 29 * DAY_MS);
+  return {
+    start: start.toISOString().slice(0, 10),
+    end: end.toISOString().slice(0, 10),
+  };
+}
 
 // Both charts measure the DOM (ResponsiveContainer) and only make sense
 // client-side, so they're excluded from the static prerender entirely.
@@ -54,6 +64,7 @@ export default function DashboardPage() {
   const { sellerId, seller } = useSeller();
   const [raw, setRaw] = useState<RawData | null>(null);
   const [range, setRange] = useState<DateRangeKey>("all");
+  const [customRange, setCustomRange] = useState<CustomRange>(defaultCustomRange);
 
   const load = useCallback(async () => {
     if (!sellerId) return;
@@ -179,9 +190,11 @@ export default function DashboardPage() {
   // since `raw` already holds the seller's full order/expense history.
   const filtered = useMemo(() => {
     if (!raw) return null;
-    const orders = raw.orders.filter((o) => isWithinRange(o.created_at, range));
+    const orders = raw.orders.filter((o) =>
+      isWithinRange(o.created_at, range, customRange)
+    );
     const expenses = raw.expenses.filter((e) =>
-      isWithinRange(e.expense_date, range)
+      isWithinRange(e.expense_date, range, customRange)
     );
 
     const totalSales = orders.reduce((sum, o) => sum + (o.order_total ?? 0), 0);
@@ -201,7 +214,7 @@ export default function DashboardPage() {
       totalExpenses,
       statusCounts,
     };
-  }, [raw, range]);
+  }, [raw, range, customRange]);
 
   return (
     <div>
@@ -214,7 +227,12 @@ export default function DashboardPage() {
               : "A quick look at how business is going."}
           </p>
         </div>
-        <DateRangeFilter value={range} onChange={setRange} />
+        <DateRangeFilter
+          value={range}
+          onChange={setRange}
+          customRange={customRange}
+          onCustomRangeChange={setCustomRange}
+        />
       </div>
 
       {!raw || !filtered ? (
