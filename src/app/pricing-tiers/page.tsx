@@ -12,6 +12,7 @@ export default function PricingTiersPage() {
   const [tiers, setTiers] = useState<PricingTier[] | null>(null);
   const [name, setName] = useState("");
   const [percent, setPercent] = useState("");
+  const [isDefault, setIsDefault] = useState(false);
   const [adding, setAdding] = useState(false);
 
   const load = useCallback(() => {
@@ -38,14 +39,21 @@ export default function PricingTiersPage() {
     e.preventDefault();
     if (!sellerId || !name.trim() || percent === "") return;
     setAdding(true);
+    if (isDefault) {
+      await supabase
+        .from("pricing_tiers")
+        .update({ is_default: false })
+        .eq("chat_id", sellerId);
+    }
     await supabase.from("pricing_tiers").insert({
       chat_id: sellerId,
       name: name.trim(),
       adjustment_percent: Number(percent),
-      is_default: false,
+      is_default: isDefault,
     });
     setName("");
     setPercent("");
+    setIsDefault(false);
     setAdding(false);
     load();
   };
@@ -151,6 +159,15 @@ export default function PricingTiersPage() {
             placeholder="-15"
             className="w-full rounded-md border border-paper-line bg-paper px-3 py-2 tabular outline-none focus:border-brass"
           />
+        </label>
+        <label className="flex items-center gap-2 text-sm text-ink-soft">
+          <input
+            type="checkbox"
+            checked={isDefault}
+            onChange={(e) => setIsDefault(e.target.checked)}
+            className="h-4 w-4 accent-[var(--color-brass)]"
+          />
+          Set as default
         </label>
         <button
           type="submit"

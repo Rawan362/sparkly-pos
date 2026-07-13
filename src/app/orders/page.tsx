@@ -7,6 +7,7 @@ import { useSeller } from "@/lib/SellerContext";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import type { Order, OrderStatus } from "@/lib/types";
 import { Stamp } from "@/components/ui/Stamp";
+import { AddOrderModal } from "@/components/orders/AddOrderModal";
 
 const STATUSES: OrderStatus[] = ["PENDING", "SHIPPED", "DELIVERED", "CANCELLED"];
 const FILTERS: Array<OrderStatus | "ALL"> = ["ALL", ...STATUSES];
@@ -22,6 +23,7 @@ export default function OrdersPage() {
   const { sellerId } = useSeller();
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [filter, setFilter] = useState<OrderStatus | "ALL">("ALL");
+  const [showAdd, setShowAdd] = useState(false);
 
   const load = useCallback(() => {
     if (!sellerId) return;
@@ -55,12 +57,28 @@ export default function OrdersPage() {
 
   return (
     <div>
-      <div className="mb-5">
-        <h1 className="text-2xl font-semibold">Orders</h1>
-        <p className="text-sm text-ink-soft">
-          Orders customers place through Ahmad on WhatsApp/Telegram.
-        </p>
+      <div className="mb-5 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold">Orders</h1>
+          <p className="text-sm text-ink-soft">
+            Orders customers place through Ahmad on WhatsApp/Telegram.
+          </p>
+        </div>
+        <button
+          onClick={() => setShowAdd(true)}
+          className="shrink-0 rounded-md bg-ink px-4 py-2 text-sm font-semibold uppercase tracking-wide text-paper-raised"
+        >
+          + New Order
+        </button>
       </div>
+
+      {showAdd && sellerId && (
+        <AddOrderModal
+          sellerId={sellerId}
+          onClose={() => setShowAdd(false)}
+          onCreated={load}
+        />
+      )}
 
       <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
         {FILTERS.map((f) => (

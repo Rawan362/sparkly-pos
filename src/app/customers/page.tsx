@@ -6,11 +6,13 @@ import { useSeller } from "@/lib/SellerContext";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import type { Customer } from "@/lib/types";
 import { Stamp } from "@/components/ui/Stamp";
+import { AddCustomerModal } from "@/components/customers/AddCustomerModal";
 
 export default function CustomersPage() {
   const { sellerId } = useSeller();
   const [customers, setCustomers] = useState<Customer[] | null>(null);
   const [search, setSearch] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
 
   const load = useCallback(() => {
     if (!sellerId) return;
@@ -52,13 +54,29 @@ export default function CustomersPage() {
             Everyone who has bought from you through Ahmad.
           </p>
         </div>
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search name or phone…"
-          className="w-full max-w-xs rounded-md border border-paper-line bg-paper px-3 py-2 text-sm outline-none focus:border-brass"
-        />
+        <div className="flex w-full gap-3 sm:w-auto">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name or phone…"
+            className="w-full max-w-xs rounded-md border border-paper-line bg-paper px-3 py-2 text-sm outline-none focus:border-brass"
+          />
+          <button
+            onClick={() => setShowAdd(true)}
+            className="shrink-0 rounded-md bg-ink px-4 py-2 text-sm font-semibold uppercase tracking-wide text-paper-raised"
+          >
+            + New Customer
+          </button>
+        </div>
       </div>
+
+      {showAdd && sellerId && (
+        <AddCustomerModal
+          sellerId={sellerId}
+          onClose={() => setShowAdd(false)}
+          onCreated={load}
+        />
+      )}
 
       {!filtered ? (
         <p className="text-ink-soft">Loading customers…</p>
