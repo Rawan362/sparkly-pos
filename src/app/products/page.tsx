@@ -41,13 +41,19 @@ export default function ProductsPage() {
     setProducts(
       (prev) => prev?.map((p) => (p.id === id ? { ...p, ...patch } : p)) ?? null
     );
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("seller_products")
       .update(patch)
-      .eq("id", id);
+      .eq("id", id)
+      .select();
     if (error) {
       setProducts(prevProducts ?? null);
       setSaveError(error.message);
+    } else if (!data || data.length === 0) {
+      setProducts(prevProducts ?? null);
+      setSaveError(
+        "No matching row was updated. This usually means a Row Level Security policy on 'seller_products' is blocking updates for this row."
+      );
     }
   };
 

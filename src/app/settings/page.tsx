@@ -49,11 +49,18 @@ export default function SettingsPage() {
 
   const updateBusinessPhone = async (value: string) => {
     if (!sellerId) return;
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("sellers")
       .update({ business_phone: value || null })
-      .eq("chat_id", sellerId);
-    if (error) setSaveError(error.message);
+      .eq("chat_id", sellerId)
+      .select();
+    if (error) {
+      setSaveError(error.message);
+    } else if (!data || data.length === 0) {
+      setSaveError(
+        "No matching row was updated. This usually means a Row Level Security policy on 'sellers' is blocking updates for this chat_id."
+      );
+    }
   };
 
   const load = useCallback(() => {
