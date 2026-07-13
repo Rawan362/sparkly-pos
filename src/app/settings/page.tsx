@@ -45,13 +45,15 @@ const SWITCHES: Array<{
 export default function SettingsPage() {
   const { sellerId, seller } = useSeller();
   const [settings, setSettings] = useState<PosSettings | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const updateBusinessPhone = async (value: string) => {
     if (!sellerId) return;
-    await supabase
+    const { error } = await supabase
       .from("sellers")
       .update({ business_phone: value || null })
       .eq("chat_id", sellerId);
+    if (error) setSaveError(error.message);
   };
 
   const load = useCallback(() => {
@@ -78,10 +80,15 @@ export default function SettingsPage() {
 
   const update = async (patch: Partial<PosSettings>) => {
     if (!sellerId) return;
+    const prevSettings = settings;
     setSettings((prev) => (prev ? { ...prev, ...patch } : prev));
-    await supabase
+    const { error } = await supabase
       .from("pos_settings")
       .upsert({ chat_id: sellerId, ...patch }, { onConflict: "chat_id" });
+    if (error) {
+      setSettings(prevSettings);
+      setSaveError(error.message);
+    }
   };
 
   return (
@@ -93,6 +100,18 @@ export default function SettingsPage() {
           Ahmad to do automatically.
         </p>
       </div>
+
+      {saveError && (
+        <div className="mb-4 flex items-start justify-between gap-3 rounded-md border border-stamp-red/40 bg-stamp-red-soft px-4 py-2.5 text-sm text-stamp-red">
+          <span>Save failed: {saveError}</span>
+          <button
+            onClick={() => setSaveError(null)}
+            className="shrink-0 font-medium hover:opacity-70"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <div className="paper-card mb-4 flex items-center justify-between gap-4 px-5 py-4">
         <div>
