@@ -14,6 +14,7 @@ export default function ProductsPage() {
   const { sellerId } = useSeller();
   const [products, setProducts] = useState<SellerProduct[] | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     if (!sellerId) return;
@@ -36,10 +37,18 @@ export default function ProductsPage() {
   );
 
   const update = async (id: string, patch: Partial<SellerProduct>) => {
+    const prevProducts = products;
     setProducts(
       (prev) => prev?.map((p) => (p.id === id ? { ...p, ...patch } : p)) ?? null
     );
-    await supabase.from("seller_products").update(patch).eq("id", id);
+    const { error } = await supabase
+      .from("seller_products")
+      .update(patch)
+      .eq("id", id);
+    if (error) {
+      setProducts(prevProducts ?? null);
+      setSaveError(error.message);
+    }
   };
 
   return (
@@ -73,6 +82,18 @@ export default function ProductsPage() {
           onClose={() => setShowAdd(false)}
           onCreated={load}
         />
+      )}
+
+      {saveError && (
+        <div className="mb-4 flex items-start justify-between gap-3 rounded-md border border-stamp-red/40 bg-stamp-red-soft px-4 py-2.5 text-sm text-stamp-red">
+          <span>Save failed: {saveError}</span>
+          <button
+            onClick={() => setSaveError(null)}
+            className="shrink-0 font-medium hover:opacity-70"
+          >
+            Dismiss
+          </button>
+        </div>
       )}
 
       {!products ? (

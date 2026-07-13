@@ -5,3 +5,7 @@
 
 alter table public.seller_products
   add column if not exists product_code text;
+
+-- Force PostgREST to pick up the new column immediately instead of waiting
+-- for its next automatic schema cache refresh.
+notify pgrst, 'reload schema';
