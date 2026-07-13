@@ -40,7 +40,9 @@ type Summary = {
   totalCustomers: number;
   vipCustomers: number;
   lowStockItems: number;
+  totalExpenses: number;
   salesByDay: SalesPoint[];
+  salesByMonth: SalesPoint[];
   statusCounts: StatusCount[];
 };
 
@@ -51,7 +53,7 @@ export default function DashboardPage() {
   const load = useCallback(async () => {
     if (!sellerId) return;
 
-    const [ordersRes, customersCountRes, vipCountRes, productsRes] =
+    const [ordersRes, customersCountRes, vipCountRes, productsRes, expensesRes] =
       await Promise.all([
         supabase
           .from("orders")
@@ -71,9 +73,14 @@ export default function DashboardPage() {
           .select("stock_quantity, low_stock_threshold")
           .eq("chat_id", sellerId)
           .eq("track_stock", true),
+        supabase.from("expenses").select("amount").eq("chat_id", sellerId),
       ]);
 
     const orders = (ordersRes.data ?? []) as OrderRow[];
+    const totalExpenses = (expensesRes.data ?? []).reduce(
+      (sum, e) => sum + (e.amount ?? 0),
+      0
+    );
     const totalSales = orders.reduce((sum, o) => sum + (o.order_total ?? 0), 0);
     const totalOrders = orders.length;
     const pendingOrders = orders.filter(
@@ -116,6 +123,29 @@ export default function DashboardPage() {
       })
     );
 
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const months = new Map<string, number>();
+    const monthLabels = new Map<string, string>();
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(monthStart.getFullYear(), monthStart.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      months.set(key, 0);
+      monthLabels.set(
+        key,
+        d.toLocaleDateString(undefined, { month: "short", year: "numeric" })
+      );
+    }
+    for (const o of orders) {
+      const d = new Date(o.created_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      if (months.has(key)) {
+        months.set(key, (months.get(key) ?? 0) + (o.order_total ?? 0));
+      }
+    }
+    const salesByMonth: SalesPoint[] = Array.from(months.entries()).map(
+      ([date, total]) => ({ date, total, label: monthLabels.get(date)! })
+    );
+
     setSummary({
       totalSales,
       totalOrders,
@@ -123,7 +153,9 @@ export default function DashboardPage() {
       totalCustomers: customersCountRes.count ?? 0,
       vipCustomers: vipCountRes.count ?? 0,
       lowStockItems,
+      totalExpenses,
       salesByDay: totalOrders === 0 ? [] : salesByDay,
+      salesByMonth: totalOrders === 0 ? [] : salesByMonth,
       statusCounts,
     });
   }, [sellerId]);
@@ -145,6 +177,11 @@ export default function DashboardPage() {
     sellerId ? `chat_id=eq.${sellerId}` : undefined,
     load
   );
+  useRealtimeRefresh(
+    "expenses",
+    sellerId ? `chat_id=eq.${sellerId}` : undefined,
+    load
+  );
 
   return (
     <div>
@@ -161,7 +198,7 @@ export default function DashboardPage() {
         <p className="text-ink-soft">Loading dashboard…</p>
       ) : (
         <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <StatTile
               label="Total sales"
               value={summary.totalSales.toLocaleString()}
@@ -175,6 +212,10 @@ export default function DashboardPage() {
               label="Pending orders"
               value={summary.pendingOrders.toLocaleString()}
               tone={summary.pendingOrders > 0 ? "brass" : "ink"}
+            />
+            <StatTile
+              label="Total expenses"
+              value={summary.totalExpenses.toLocaleString()}
             />
             <StatTile
               label="Total customers"
@@ -196,6 +237,12 @@ export default function DashboardPage() {
             <SalesChart data={summary.salesByDay} />
             <OrdersStatusChart data={summary.statusCounts} />
           </div>
+
+          <SalesChart
+            data={summary.salesByMonth}
+            title="Sales — last 12 months"
+            emptyMessage="No sales yet — a year of history will build up here once Ahmad starts closing deals."
+          />
         </div>
       )}
     </div>

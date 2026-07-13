@@ -68,6 +68,16 @@ export type Customer = {
   seller_id: string;
 };
 
+export type Expense = {
+  id: string;
+  chat_id: string;
+  amount: number;
+  category: string | null;
+  description: string | null;
+  expense_date: string;
+  created_at: string;
+};
+
 export type OrderStatus = "PENDING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
 
 export type Order = {

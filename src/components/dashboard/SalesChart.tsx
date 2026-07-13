@@ -33,13 +33,20 @@ function CustomTooltip({
   );
 }
 
-export function SalesChart({ data }: { data: SalesPoint[] }) {
+export function SalesChart({
+  data,
+  title = "Sales — last 30 days",
+  emptyMessage = "No sales yet — orders will appear here once Ahmad starts closing deals.",
+}: {
+  data: SalesPoint[];
+  title?: string;
+  emptyMessage?: string;
+}) {
   if (data.length === 0) {
     return (
-      <ChartFrame title="Sales — last 30 days">
+      <ChartFrame title={title}>
         <p className="flex h-64 items-center justify-center text-center text-sm text-ink-soft">
-          No sales yet — orders will appear here once Ahmad starts closing
-          deals.
+          {emptyMessage}
         </p>
       </ChartFrame>
     );
@@ -48,7 +55,7 @@ export function SalesChart({ data }: { data: SalesPoint[] }) {
   const everyNth = Math.max(1, Math.ceil(data.length / 6));
 
   return (
-    <ChartFrame title="Sales — last 30 days">
+    <ChartFrame title={title}>
       <div className="h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
