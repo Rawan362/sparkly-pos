@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "preview": "serve out",
+    "lint": "eslint",
+    "deploy:cf": "next build && wrangler pages deploy out --project-name=sparkly-pos"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.2",
@@ -22,7 +23,9 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
+    "serve": "^14.2.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.110.0"
   }
 }

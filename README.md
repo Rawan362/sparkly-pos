@@ -5,10 +5,13 @@ Supabase tables the Telegram bot (Ahmad) already reads and writes. Nothing
 here is a parallel system: edit a price in the dashboard and Ahmad sees it on
 the next message; confirm an order in chat and it updates here live.
 
-No backend server: this is a static React/Next.js app that talks to
-Supabase's REST + Realtime API directly from the browser using the project's
-anon key, which is safe to ship client-side because access is governed by
-Supabase Row Level Security, not by keeping the key secret.
+No backend server: this is a fully static React/Next.js export (`output:
+"export"`) that talks to Supabase's REST + Realtime API directly from the
+browser using the project's anon key, which is safe to ship client-side
+because access is governed by Supabase Row Level Security, not by keeping
+the key secret. Being static HTML/JS/CSS means it can be served from
+Cloudflare Pages, Vercel, Netlify, or literally any static host — there's no
+server runtime it depends on.
 
 ## Identifying as a seller
 
@@ -65,14 +68,33 @@ you ever want to point the app at a different Supabase project — copy it to
 
 ## Deploying (one command)
 
+### Cloudflare Pages
+
 ```bash
-npx vercel --prod
+npm run deploy:cf
 ```
 
-Follow the prompts (link/create a project); no environment variables need to
-be set for this to work against the existing Sparkly AI Supabase project.
-Netlify (`npx netlify deploy --prod`) or any other static/Next.js host works
-the same way.
+This runs `next build` (which writes the static site to `out/`, per
+`output: "export"` in `next.config.ts`) and then `wrangler pages deploy`.
+First run will prompt you to log in / link a Cloudflare account and confirm
+the project name (`sparkly-pos`, set in `wrangler.toml`); no environment
+variables need to be set for this to work against the existing Sparkly AI
+Supabase project.
+
+If you'd rather connect the repo through the Cloudflare dashboard's Git
+integration instead of the CLI: build command `npm run build`, output
+directory `out`.
+
+### Vercel / Netlify / any static host
+
+```bash
+npx vercel --prod
+# or
+npx netlify deploy --prod --dir=out
+```
+
+Since this is a plain static export, any host that can serve a folder of
+HTML/JS/CSS works the same way — point it at `out/` after `npm run build`.
 
 ## Notes
 
