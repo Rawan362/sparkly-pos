@@ -99,6 +99,14 @@ export function Receipt({
               </span>
             </div>
           )}
+          {sale.shippingAmount > 0 && (
+            <div className="flex justify-between text-ink-soft">
+              <span>Shipping</span>
+              <span className="tabular">
+                +{sale.shippingAmount.toLocaleString()}
+              </span>
+            </div>
+          )}
           <div className="flex justify-between text-lg font-semibold">
             <span>Total</span>
             <span className="tabular">{sale.total.toLocaleString()}</span>

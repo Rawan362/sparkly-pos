@@ -43,6 +43,7 @@ export default function PosPage() {
     "percent"
   );
   const [discountValue, setDiscountValue] = useState("");
+  const [shippingValue, setShippingValue] = useState("");
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0]);
   const [paymentStatus, setPaymentStatus] = useState<
     "full" | "partial" | "debt"
@@ -147,7 +148,8 @@ export default function PosPage() {
     discountMode === "percent"
       ? subtotal * (discountNum / 100)
       : Math.min(discountNum, subtotal);
-  const total = Math.max(0, subtotal - discountAmount);
+  const shippingAmount = Number(shippingValue) || 0;
+  const total = Math.max(0, subtotal - discountAmount + shippingAmount);
   const paidAmount =
     paymentStatus === "full"
       ? total
@@ -192,6 +194,7 @@ export default function PosPage() {
     setSelectedCustomer(null);
     setDiscountValue("");
     setDiscountMode("percent");
+    setShippingValue("");
     setPaymentStatus("full");
     setPartialAmount("");
     setCompletedSale(null);
@@ -283,6 +286,7 @@ export default function PosPage() {
       isWholesale,
       subtotal,
       discountAmount,
+      shippingAmount,
       total,
       paidAmount,
       paymentMethod,
@@ -447,6 +451,20 @@ export default function PosPage() {
 
               <div>
                 <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                  Shipping charges
+                </p>
+                <input
+                  type="number"
+                  min="0"
+                  value={shippingValue}
+                  onChange={(e) => setShippingValue(e.target.value)}
+                  placeholder="0"
+                  className="w-full rounded-md border border-paper-line bg-paper px-3 py-2 text-sm tabular outline-none focus:border-brass"
+                />
+              </div>
+
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
                   Payment
                 </p>
                 <div className="flex gap-2">
@@ -497,6 +515,14 @@ export default function PosPage() {
                     <span>Discount</span>
                     <span className="tabular">
                       −{discountAmount.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                {shippingAmount > 0 && (
+                  <div className="flex justify-between text-ink-soft">
+                    <span>Shipping</span>
+                    <span className="tabular">
+                      +{shippingAmount.toLocaleString()}
                     </span>
                   </div>
                 )}

@@ -76,8 +76,9 @@ export function WholesaleInvoice({
         <table className="mt-5 w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-paper-line text-left text-xs uppercase tracking-wide text-ink-faint">
-              <th className="py-2 pr-2 font-medium">Code</th>
+              <th className="py-2 pr-2 font-medium">#</th>
               <th className="py-2 pr-2 font-medium">Product</th>
+              <th className="py-2 pr-2 font-medium">Code</th>
               <th className="py-2 pr-2 font-medium text-right">Quantity</th>
               <th className="py-2 pr-2 font-medium text-right">Unit Price</th>
               <th className="py-2 pl-2 font-medium text-right">Subtotal</th>
@@ -86,11 +87,12 @@ export function WholesaleInvoice({
           <tbody>
             {sale.lines.map((l, i) => (
               <tr key={i} className="border-b border-paper-line">
-                <td className="tabular py-2 pr-2 text-ink-soft">
-                  {l.code || "—"}
-                </td>
+                <td className="tabular py-2 pr-2 text-ink-faint">{i + 1}</td>
                 <td className="py-2 pr-2" dir="auto">
                   {l.name}
+                </td>
+                <td className="tabular py-2 pr-2 text-ink-soft">
+                  {l.code || "—"}
                 </td>
                 <td className="tabular py-2 pr-2 text-right">
                   {l.quantity.toFixed(l.unitLabel ? 2 : 0)}
@@ -134,6 +136,14 @@ export function WholesaleInvoice({
                 <span>Discount</span>
                 <span className="tabular">
                   −{sale.discountAmount.toLocaleString()}
+                </span>
+              </div>
+            )}
+            {sale.shippingAmount > 0 && (
+              <div className="flex justify-between text-ink-soft">
+                <span>Shipping Charges</span>
+                <span className="tabular">
+                  {sale.shippingAmount.toLocaleString()}
                 </span>
               </div>
             )}

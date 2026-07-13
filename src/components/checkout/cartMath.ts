@@ -16,6 +16,7 @@ export type CompletedSale = {
   isWholesale: boolean;
   subtotal: number;
   discountAmount: number;
+  shippingAmount: number;
   total: number;
   paidAmount: number;
   paymentMethod: string;
