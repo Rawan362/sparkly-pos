@@ -35,6 +35,69 @@ const NAV: NavEntry[] = [
 
 const COLLAPSE_STORAGE_KEY = "sparkly.sidebarCollapsed";
 
+function navLinkClass(active: boolean) {
+  return clsx(
+    "shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors",
+    "border-b-2 sm:border-b-0 sm:border-l-4",
+    active
+      ? "border-brass text-ink sm:bg-brass-soft/50"
+      : "border-transparent text-ink-faint hover:text-ink-soft"
+  );
+}
+
+function NavGroup({
+  label,
+  links,
+  pathname,
+}: {
+  label: string;
+  links: NavLink[];
+  pathname: string | null;
+}) {
+  const hasActiveChild = links.some((l) => pathname?.startsWith(l.href));
+  const [open, setOpen] = useState(hasActiveChild);
+
+  return (
+    <div className="contents sm:block">
+      {/* Mobile: no dropdown, just show the links inline in the scroll row. */}
+      {links.map((l) => (
+        <Link
+          key={l.href}
+          href={l.href}
+          className={clsx(navLinkClass(pathname?.startsWith(l.href) ?? false), "sm:hidden")}
+        >
+          {l.label}
+        </Link>
+      ))}
+
+      {/* Desktop: collapsible group. */}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="hidden w-full items-center justify-between gap-2 rounded-md px-3 pt-3 pb-1 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint transition-colors hover:text-brass-dark sm:flex"
+      >
+        {label}
+        <span className={clsx("text-xs transition-transform", open && "rotate-90")}>
+          ›
+        </span>
+      </button>
+      {open && (
+        <div className="hidden flex-col gap-0.5 sm:flex">
+          {links.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className={navLinkClass(pathname?.startsWith(l.href) ?? false)}
+            >
+              {l.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const { sellerId, seller, signOut } = useSeller();
@@ -113,38 +176,24 @@ export function Sidebar() {
         </div>
 
         <nav className="flex gap-1 overflow-x-auto px-2 pb-2 sm:flex-1 sm:flex-col sm:gap-0.5 sm:overflow-x-visible sm:overflow-y-auto sm:px-3 sm:pb-4">
-          {NAV.flatMap((entry) => {
-            const link = (tab: NavLink) => {
-              const active = pathname?.startsWith(tab.href);
-              return (
-                <Link
-                  key={tab.href}
-                  href={tab.href}
-                  className={clsx(
-                    "shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                    "border-b-2 sm:border-b-0 sm:border-l-4",
-                    active
-                      ? "border-brass text-ink sm:bg-brass-soft/50"
-                      : "border-transparent text-ink-faint hover:text-ink-soft"
-                  )}
-                >
-                  {tab.label}
-                </Link>
-              );
-            };
-
-            if (entry.kind === "link") return [link(entry)];
-
-            return [
-              <span
-                key={`group-${entry.label}`}
-                className="hidden shrink-0 px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint sm:block"
+          {NAV.map((entry) =>
+            entry.kind === "link" ? (
+              <Link
+                key={entry.href}
+                href={entry.href}
+                className={navLinkClass(pathname?.startsWith(entry.href) ?? false)}
               >
                 {entry.label}
-              </span>,
-              ...entry.links.map(link),
-            ];
-          })}
+              </Link>
+            ) : (
+              <NavGroup
+                key={entry.label}
+                label={entry.label}
+                links={entry.links}
+                pathname={pathname}
+              />
+            )
+          )}
         </nav>
 
         <div className="hidden border-t border-paper-line px-3 py-3 sm:block sm:mt-auto">
