@@ -77,12 +77,22 @@ function NavGroup({
         className="hidden w-full items-center justify-between gap-2 rounded-md px-3 pt-3 pb-1 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint transition-colors hover:text-brass-dark sm:flex"
       >
         {label}
-        <span className={clsx("text-xs transition-transform", open && "rotate-90")}>
+        <span
+          className={clsx(
+            "text-base leading-none transition-transform duration-200 ease-out",
+            open && "rotate-90"
+          )}
+        >
           ›
         </span>
       </button>
-      {open && (
-        <div className="hidden flex-col gap-0.5 sm:flex">
+      <div
+        className={clsx(
+          "hidden sm:grid sm:grid-cols-1 overflow-hidden transition-[grid-template-rows] duration-200 ease-out",
+          open ? "sm:grid-rows-[1fr]" : "sm:grid-rows-[0fr]"
+        )}
+      >
+        <div className="flex min-h-0 flex-col gap-0.5">
           {links.map((l) => (
             <Link
               key={l.href}
@@ -93,7 +103,7 @@ function NavGroup({
             </Link>
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }
