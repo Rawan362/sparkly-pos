@@ -6,18 +6,31 @@ import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { useSeller } from "@/lib/SellerContext";
 
-const TABS = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/pos", label: "POS" },
-  { href: "/products", label: "Products" },
-  { href: "/stock", label: "Stock" },
-  { href: "/pricing-tiers", label: "Pricing Tiers" },
-  { href: "/units", label: "Units" },
-  { href: "/orders", label: "Orders" },
-  { href: "/invoices", label: "Invoices" },
-  { href: "/expenses", label: "Expenses" },
-  { href: "/customers", label: "Customers" },
-  { href: "/settings", label: "Settings" },
+type NavLink = { href: string; label: string };
+type NavEntry =
+  | ({ kind: "link" } & NavLink)
+  | { kind: "group"; label: string; links: NavLink[] };
+
+const NAV: NavEntry[] = [
+  { kind: "link", href: "/dashboard", label: "Dashboard" },
+  { kind: "link", href: "/pos", label: "POS" },
+  { kind: "link", href: "/products", label: "Products" },
+  { kind: "link", href: "/stock", label: "Stock" },
+  {
+    kind: "group",
+    label: "Purchasing",
+    links: [
+      { href: "/suppliers", label: "Suppliers" },
+      { href: "/purchases", label: "Purchases" },
+    ],
+  },
+  { kind: "link", href: "/pricing-tiers", label: "Pricing Tiers" },
+  { kind: "link", href: "/units", label: "Units" },
+  { kind: "link", href: "/orders", label: "Orders" },
+  { kind: "link", href: "/invoices", label: "Invoices" },
+  { kind: "link", href: "/expenses", label: "Expenses" },
+  { kind: "link", href: "/customers", label: "Customers" },
+  { kind: "link", href: "/settings", label: "Settings" },
 ];
 
 const COLLAPSE_STORAGE_KEY = "sparkly.sidebarCollapsed";
@@ -100,23 +113,37 @@ export function Sidebar() {
         </div>
 
         <nav className="flex gap-1 overflow-x-auto px-2 pb-2 sm:flex-1 sm:flex-col sm:gap-0.5 sm:overflow-x-visible sm:overflow-y-auto sm:px-3 sm:pb-4">
-          {TABS.map((tab) => {
-            const active = pathname?.startsWith(tab.href);
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className={clsx(
-                  "shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  "border-b-2 sm:border-b-0 sm:border-l-4",
-                  active
-                    ? "border-brass text-ink sm:bg-brass-soft/50"
-                    : "border-transparent text-ink-faint hover:text-ink-soft"
-                )}
+          {NAV.flatMap((entry) => {
+            const link = (tab: NavLink) => {
+              const active = pathname?.startsWith(tab.href);
+              return (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  className={clsx(
+                    "shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                    "border-b-2 sm:border-b-0 sm:border-l-4",
+                    active
+                      ? "border-brass text-ink sm:bg-brass-soft/50"
+                      : "border-transparent text-ink-faint hover:text-ink-soft"
+                  )}
+                >
+                  {tab.label}
+                </Link>
+              );
+            };
+
+            if (entry.kind === "link") return [link(entry)];
+
+            return [
+              <span
+                key={`group-${entry.label}`}
+                className="hidden shrink-0 px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint sm:block"
               >
-                {tab.label}
-              </Link>
-            );
+                {entry.label}
+              </span>,
+              ...entry.links.map(link),
+            ];
           })}
         </nav>
 

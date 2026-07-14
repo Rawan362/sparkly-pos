@@ -21,6 +21,7 @@ const STATUS_COLOR: Record<OrderStatus, string> = {
   SHIPPED: "var(--color-ink-soft)",
   DELIVERED: "var(--color-stamp-green)",
   CANCELLED: "var(--color-stamp-red)",
+  RETURNED: "var(--color-stamp-red)",
 };
 
 function CustomTooltip({
