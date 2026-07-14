@@ -14,6 +14,7 @@ const TABS = [
   { href: "/pricing-tiers", label: "Pricing Tiers" },
   { href: "/units", label: "Units" },
   { href: "/orders", label: "Orders" },
+  { href: "/invoices", label: "Invoices" },
   { href: "/expenses", label: "Expenses" },
   { href: "/customers", label: "Customers" },
   { href: "/settings", label: "Settings" },

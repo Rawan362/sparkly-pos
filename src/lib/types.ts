@@ -105,4 +105,5 @@ export type Order = {
   payment_method: string | null;
   amount_paid: number | null;
   invoice_number: string | null;
+  is_wholesale: boolean;
 };

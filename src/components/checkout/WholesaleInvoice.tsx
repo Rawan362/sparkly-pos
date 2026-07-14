@@ -6,9 +6,15 @@ import type { CompletedSale } from "./cartMath";
 export function WholesaleInvoice({
   sale,
   onNewSale,
+  heading = "Sale complete",
+  subheading = "Here's the wholesale invoice for this sale.",
+  actionLabel = "New sale",
 }: {
   sale: CompletedSale;
   onNewSale: () => void;
+  heading?: string;
+  subheading?: string;
+  actionLabel?: string;
 }) {
   const { seller } = useSeller();
   const balanceDue = sale.total - sale.paidAmount;
@@ -17,10 +23,8 @@ export function WholesaleInvoice({
     <div>
       <div className="mb-5 flex items-center justify-between print:hidden">
         <div>
-          <h1 className="text-2xl font-semibold">Sale complete</h1>
-          <p className="text-sm text-ink-soft">
-            Here&apos;s the wholesale invoice for this sale.
-          </p>
+          <h1 className="text-2xl font-semibold">{heading}</h1>
+          <p className="text-sm text-ink-soft">{subheading}</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -33,7 +37,7 @@ export function WholesaleInvoice({
             onClick={onNewSale}
             className="rounded-md bg-ink px-4 py-2 text-sm font-semibold uppercase tracking-wide text-paper-raised"
           >
-            New sale
+            {actionLabel}
           </button>
         </div>
       </div>

@@ -240,6 +240,7 @@ export default function PosPage() {
       payment_method: paymentMethod,
       amount_paid: linePaid[i],
       invoice_number: invoiceNumber,
+      is_wholesale: isWholesale,
     }));
 
     const { error: insertError } = await supabase.from("orders").insert(rows);
