@@ -8,15 +8,21 @@ import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import type { Order, OrderStatus } from "@/lib/types";
 import { Stamp } from "@/components/ui/Stamp";
 import { AddOrderModal } from "@/components/orders/AddOrderModal";
+import { ReturnOrderModal } from "@/components/orders/ReturnOrderModal";
 
+// The statuses a cashier can set directly from the quick dropdown below.
+// RETURNED is deliberately excluded from it -- it always goes through the
+// "Mark as Returned" action so a reason is captured and stock is restored.
 const STATUSES: OrderStatus[] = ["PENDING", "SHIPPED", "DELIVERED", "CANCELLED"];
-const FILTERS: Array<OrderStatus | "ALL"> = ["ALL", ...STATUSES];
+const ALL_STATUSES: OrderStatus[] = [...STATUSES, "RETURNED"];
+const FILTERS: Array<OrderStatus | "ALL"> = ["ALL", ...ALL_STATUSES];
 
 const statusTone: Record<OrderStatus, "green" | "red" | "ink" | "brass"> = {
   PENDING: "brass",
   SHIPPED: "ink",
   DELIVERED: "green",
   CANCELLED: "red",
+  RETURNED: "red",
 };
 
 export default function OrdersPage() {
@@ -24,6 +30,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [filter, setFilter] = useState<OrderStatus | "ALL">("ALL");
   const [showAdd, setShowAdd] = useState(false);
+  const [returningOrder, setReturningOrder] = useState<Order | null>(null);
 
   const load = useCallback(() => {
     if (!sellerId) return;
@@ -80,6 +87,15 @@ export default function OrdersPage() {
         />
       )}
 
+      {returningOrder && sellerId && (
+        <ReturnOrderModal
+          sellerId={sellerId}
+          order={returningOrder}
+          onClose={() => setReturningOrder(null)}
+          onReturned={load}
+        />
+      )}
+
       <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
         {FILTERS.map((f) => (
           <button
@@ -128,33 +144,49 @@ export default function OrdersPage() {
                   {o.delivery_address}
                 </p>
               )}
+              {o.order_status === "RETURNED" && o.return_reason && (
+                <p className="mt-2 text-sm text-stamp-red" dir="auto">
+                  Return reason: {o.return_reason}
+                </p>
+              )}
               <div className="mt-3 flex items-center justify-between gap-3">
                 <Stamp
                   tone={
-                    STATUSES.includes(o.order_status as OrderStatus)
+                    ALL_STATUSES.includes(o.order_status as OrderStatus)
                       ? statusTone[o.order_status as OrderStatus]
                       : "ink"
                   }
                 >
                   {o.order_status ?? "Unknown"}
                 </Stamp>
-                <select
-                  value={
-                    STATUSES.includes(o.order_status as OrderStatus)
-                      ? (o.order_status as OrderStatus)
-                      : "PENDING"
-                  }
-                  onChange={(e) =>
-                    updateStatus(o.id, e.target.value as OrderStatus)
-                  }
-                  className="rounded-md border border-paper-line bg-paper px-2 py-1.5 text-sm outline-none focus:border-brass"
-                >
-                  {STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
+                {o.order_status === "RETURNED" ? null : (
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={
+                        STATUSES.includes(o.order_status as OrderStatus)
+                          ? (o.order_status as OrderStatus)
+                          : "PENDING"
+                      }
+                      onChange={(e) =>
+                        updateStatus(o.id, e.target.value as OrderStatus)
+                      }
+                      className="rounded-md border border-paper-line bg-paper px-2 py-1.5 text-sm outline-none focus:border-brass"
+                    >
+                      {STATUSES.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => setReturningOrder(o)}
+                      className="rounded-md border border-stamp-red/50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-stamp-red hover:bg-stamp-red-soft"
+                    >
+                      Mark as Returned
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}

@@ -8,10 +8,12 @@ import type { SellerProduct } from "@/lib/types";
 import { InlineEdit } from "@/components/ui/InlineEdit";
 import { Toggle } from "@/components/ui/Toggle";
 import { Stamp } from "@/components/ui/Stamp";
+import { AdjustStockModal } from "@/components/stock/AdjustStockModal";
 
 export default function StockPage() {
   const { sellerId } = useSeller();
   const [products, setProducts] = useState<SellerProduct[] | null>(null);
+  const [adjusting, setAdjusting] = useState<SellerProduct | null>(null);
 
   const load = useCallback(() => {
     if (!sellerId) return;
@@ -93,18 +95,18 @@ export default function StockPage() {
                       onChange={(next) => update(p.id, { track_stock: next })}
                     />
                   </td>
-                  <td className="px-2 py-1.5">
+                  <td className="px-4 py-1.5">
                     {p.track_stock ? (
-                      <InlineEdit
-                        type="number"
-                        align="right"
-                        value={p.stock_quantity?.toString() ?? ""}
-                        onSave={(v) =>
-                          update(p.id, {
-                            stock_quantity: v === "" ? null : Number(v),
-                          })
-                        }
-                      />
+                      <div className="flex items-center justify-end gap-2">
+                        <span className="tabular">{p.stock_quantity ?? 0}</span>
+                        <button
+                          type="button"
+                          onClick={() => setAdjusting(p)}
+                          className="rounded-md border border-paper-line px-2 py-1 text-xs font-medium text-ink-soft hover:border-brass hover:text-brass-dark"
+                        >
+                          Adjust
+                        </button>
+                      </div>
                     ) : (
                       <span className="block text-right text-ink-faint">—</span>
                     )}
@@ -141,6 +143,15 @@ export default function StockPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {adjusting && sellerId && (
+        <AdjustStockModal
+          sellerId={sellerId}
+          product={adjusting}
+          onClose={() => setAdjusting(null)}
+          onAdjusted={load}
+        />
       )}
     </div>
   );

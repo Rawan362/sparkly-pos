@@ -80,7 +80,12 @@ export type Expense = {
   created_at: string;
 };
 
-export type OrderStatus = "PENDING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+export type OrderStatus =
+  | "PENDING"
+  | "SHIPPED"
+  | "DELIVERED"
+  | "CANCELLED"
+  | "RETURNED";
 
 export type Order = {
   id: string;
@@ -106,4 +111,38 @@ export type Order = {
   amount_paid: number | null;
   invoice_number: string | null;
   is_wholesale: boolean;
+  // Added for the Orders page's "Mark as Returned" action -- null on every
+  // order that hasn't been returned.
+  return_reason: string | null;
+  returned_at: string | null;
+};
+
+export type Supplier = {
+  id: string;
+  chat_id: string;
+  name: string;
+  phone: string | null;
+  contact_info: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
+export type Purchase = {
+  id: string;
+  chat_id: string;
+  supplier_id: string | null;
+  product_id: string | null;
+  quantity: number;
+  cost_price: number | null;
+  purchase_date: string;
+  created_at: string;
+};
+
+export type StockAdjustment = {
+  id: string;
+  product_id: string;
+  chat_id: string;
+  change_amount: number;
+  reason: string | null;
+  created_at: string;
 };
