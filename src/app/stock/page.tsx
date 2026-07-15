@@ -14,6 +14,7 @@ export default function StockPage() {
   const { sellerId } = useSeller();
   const [products, setProducts] = useState<SellerProduct[] | null>(null);
   const [adjusting, setAdjusting] = useState<SellerProduct | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     if (!sellerId) return;
@@ -37,10 +38,24 @@ export default function StockPage() {
   );
 
   const update = async (id: string, patch: Partial<SellerProduct>) => {
+    const prevProducts = products;
     setProducts(
       (prev) => prev?.map((p) => (p.id === id ? { ...p, ...patch } : p)) ?? null
     );
-    await supabase.from("seller_products").update(patch).eq("id", id);
+    const { data, error } = await supabase
+      .from("seller_products")
+      .update(patch)
+      .eq("id", id)
+      .select();
+    if (error) {
+      setProducts(prevProducts ?? null);
+      setSaveError(error.message);
+    } else if (!data || data.length === 0) {
+      setProducts(prevProducts ?? null);
+      setSaveError(
+        "No matching row was updated. This usually means a Row Level Security policy on 'seller_products' is blocking updates for this row."
+      );
+    }
   };
 
   const isLow = (p: SellerProduct) =>
@@ -58,6 +73,18 @@ export default function StockPage() {
           quantities up to date.
         </p>
       </div>
+
+      {saveError && (
+        <div className="mb-4 flex items-start justify-between gap-3 rounded-md border border-stamp-red/40 bg-stamp-red-soft px-4 py-2.5 text-sm text-stamp-red">
+          <span>Save failed: {saveError}</span>
+          <button
+            onClick={() => setSaveError(null)}
+            className="shrink-0 font-medium hover:opacity-70"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {!products ? (
         <p className="text-ink-soft">Loading stock…</p>
