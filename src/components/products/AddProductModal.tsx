@@ -34,6 +34,7 @@ export function AddProductModal({
   const [form, setForm] = useState(EMPTY);
   const [manageStock, setManageStock] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const set = (key: keyof typeof EMPTY) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -43,7 +44,8 @@ export function AddProductModal({
     e.preventDefault();
     if (!form.product_name.trim()) return;
     setSaving(true);
-    await supabase.from("seller_products").insert({
+    setError(null);
+    const { error } = await supabase.from("seller_products").insert({
       chat_id: sellerId,
       product_name: form.product_name.trim(),
       product_code: form.product_code.trim() || null,
@@ -66,6 +68,10 @@ export function AddProductModal({
         : null,
     });
     setSaving(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
     onCreated();
     onClose();
   };
@@ -213,6 +219,8 @@ export function AddProductModal({
             className={fieldTextareaClass}
           />
         </Field>
+
+        {error && <p className="text-sm text-stamp-red">{error}</p>}
 
         <div className="mt-2 flex justify-end gap-2">
           <button
