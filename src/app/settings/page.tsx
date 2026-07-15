@@ -1,21 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { useSeller } from "@/lib/SellerContext";
-import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
+import { useSettings } from "@/lib/SettingsContext";
 import type { PosSettings } from "@/lib/types";
 import { Toggle } from "@/components/ui/Toggle";
 import { InlineEdit } from "@/components/ui/InlineEdit";
-
-const DEFAULTS: Omit<PosSettings, "chat_id"> = {
-  inventory_tracking_active: false,
-  low_stock_alerts_active: false,
-  low_stock_default_threshold: null,
-  auto_invoice_active: false,
-  invoice_prefix: null,
-  next_invoice_number: null,
-};
+import { LANGUAGES } from "@/lib/languages";
+import { CURRENCIES } from "@/lib/currencies";
 
 const SWITCHES: Array<{
   key: keyof Pick<
@@ -44,7 +38,7 @@ const SWITCHES: Array<{
 
 export default function SettingsPage() {
   const { sellerId, seller } = useSeller();
-  const [settings, setSettings] = useState<PosSettings | null>(null);
+  const { settings, update, t } = useSettings();
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const updateBusinessPhone = async (value: string) => {
@@ -63,74 +57,43 @@ export default function SettingsPage() {
     }
   };
 
-  const load = useCallback(() => {
-    if (!sellerId) return;
-    supabase
-      .from("pos_settings")
-      .select("*")
-      .eq("chat_id", sellerId)
-      .maybeSingle()
-      .then(({ data }) => {
-        setSettings(data ?? { chat_id: sellerId, ...DEFAULTS });
-      });
-  }, [sellerId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  useRealtimeRefresh(
-    "pos_settings",
-    sellerId ? `chat_id=eq.${sellerId}` : undefined,
-    load
-  );
-
-  const update = async (patch: Partial<PosSettings>) => {
-    if (!sellerId) return;
-    const prevSettings = settings;
-    setSettings((prev) => (prev ? { ...prev, ...patch } : prev));
-    const { error } = await supabase
-      .from("pos_settings")
-      .upsert({ chat_id: sellerId, ...patch }, { onConflict: "chat_id" });
-    if (error) {
-      setSettings(prevSettings);
-      setSaveError(error.message);
-    }
+  const runUpdate = async (patch: Partial<PosSettings>) => {
+    const { error } = await update(patch);
+    if (error) setSaveError(error);
   };
 
   return (
     <div>
       <div className="mb-5">
-        <h1 className="text-2xl font-semibold">Settings</h1>
+        <h1 className="text-2xl font-semibold">{t("Settings")}</h1>
         <p className="text-sm text-ink-soft">
-          Everything here is off by default — turn on only what you want
-          Ahmad to do automatically.
+          {t("Everything here is off by default — turn on only what you want Ahmad to do automatically.")}
         </p>
       </div>
 
       {saveError && (
         <div className="mb-4 flex items-start justify-between gap-3 rounded-md border border-stamp-red/40 bg-stamp-red-soft px-4 py-2.5 text-sm text-stamp-red">
-          <span>Save failed: {saveError}</span>
+          <span>{t("Save failed:")} {saveError}</span>
           <button
             onClick={() => setSaveError(null)}
             className="shrink-0 font-medium hover:opacity-70"
           >
-            Dismiss
+            {t("Dismiss")}
           </button>
         </div>
       )}
 
       <div className="paper-card mb-4 flex items-center justify-between gap-4 px-5 py-4">
         <div>
-          <p className="font-medium">Business phone</p>
+          <p className="font-medium">{t("Business phone")}</p>
           <p className="text-sm text-ink-soft">
-            Shown on receipts and invoices — not used for anything else.
+            {t("Shown on receipts and invoices — not used for anything else.")}
           </p>
         </div>
         <div className="w-48">
           <InlineEdit
             value={seller?.business_phone ?? ""}
-            placeholder="Add a phone number"
+            placeholder={t("Add a phone number")}
             onSave={updateBusinessPhone}
             align="right"
           />
@@ -138,26 +101,83 @@ export default function SettingsPage() {
       </div>
 
       {!settings ? (
-        <p className="text-ink-soft">Loading settings…</p>
+        <p className="text-ink-soft">{t("Loading settings…")}</p>
       ) : (
-        <div className="paper-card divide-y divide-paper-line">
-          {SWITCHES.map((s) => (
-            <div
-              key={s.key}
-              className="flex items-center justify-between gap-4 px-5 py-4"
-            >
+        <>
+          <div className="paper-card mb-4 divide-y divide-paper-line">
+            <div className="flex items-center justify-between gap-4 px-5 py-4">
               <div>
-                <p className="font-medium">{s.label}</p>
-                <p className="text-sm text-ink-soft">{s.hint}</p>
+                <p className="font-medium">{t("Language")}</p>
+                <p className="text-sm text-ink-soft">
+                  {t("Translates the app's own labels and buttons — your products, customers, and other data stay exactly as entered.")}
+                </p>
               </div>
-              <Toggle
-                checked={Boolean(settings[s.key])}
-                label={s.label}
-                onChange={(next) => update({ [s.key]: next })}
-              />
+              <select
+                value={settings.language}
+                onChange={(e) => runUpdate({ language: e.target.value })}
+                className="w-44 rounded-md border border-paper-line bg-paper px-3 py-2 text-sm outline-none focus:border-brass"
+              >
+                {LANGUAGES.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
             </div>
-          ))}
-        </div>
+            <div className="flex items-center justify-between gap-4 px-5 py-4">
+              <div>
+                <p className="font-medium">{t("Currency")}</p>
+                <p className="text-sm text-ink-soft">
+                  {t("Changes how prices are displayed throughout the app — this does not convert your numbers.")}
+                </p>
+              </div>
+              <select
+                value={settings.currency}
+                onChange={(e) => runUpdate({ currency: e.target.value })}
+                className="w-44 rounded-md border border-paper-line bg-paper px-3 py-2 text-sm outline-none focus:border-brass"
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.code} — {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center justify-between gap-4 px-5 py-4">
+              <div>
+                <p className="font-medium">{t("Locations")}</p>
+                <p className="text-sm text-ink-soft">
+                  {t("Add, edit, or remove the places you sell from.")}
+                </p>
+              </div>
+              <Link
+                href="/settings/locations"
+                className="shrink-0 rounded-md border border-paper-line px-4 py-2 text-sm font-medium text-ink-soft hover:border-brass hover:text-brass-dark"
+              >
+                {t("Manage locations")}
+              </Link>
+            </div>
+          </div>
+
+          <div className="paper-card divide-y divide-paper-line">
+            {SWITCHES.map((s) => (
+              <div
+                key={s.key}
+                className="flex items-center justify-between gap-4 px-5 py-4"
+              >
+                <div>
+                  <p className="font-medium">{t(s.label)}</p>
+                  <p className="text-sm text-ink-soft">{t(s.hint)}</p>
+                </div>
+                <Toggle
+                  checked={Boolean(settings[s.key])}
+                  label={s.label}
+                  onChange={(next) => runUpdate({ [s.key]: next })}
+                />
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

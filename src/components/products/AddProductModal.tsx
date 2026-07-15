@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Modal } from "@/components/ui/Modal";
 import { Field, fieldInputClass, fieldTextareaClass } from "@/components/ui/Field";
+import { useSettings } from "@/lib/SettingsContext";
 
 const EMPTY = {
   product_name: "",
@@ -29,6 +30,7 @@ export function AddProductModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const { t } = useSettings();
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
 
@@ -62,10 +64,10 @@ export function AddProductModal({
   };
 
   return (
-    <Modal title="Add Product" onClose={onClose}>
+    <Modal title={t("Add Product")} onClose={onClose}>
       <form onSubmit={submit} className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1">
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Product name" className="col-span-2">
+          <Field label={t("Product name")} className="col-span-2">
             <input
               autoFocus
               dir="auto"
@@ -75,7 +77,7 @@ export function AddProductModal({
               className={fieldInputClass}
             />
           </Field>
-          <Field label="Category" className="col-span-2">
+          <Field label={t("Category")} className="col-span-2">
             <input
               dir="auto"
               value={form.product_category}
@@ -84,7 +86,7 @@ export function AddProductModal({
               className={fieldInputClass}
             />
           </Field>
-          <Field label="Product code" className="col-span-2">
+          <Field label={t("Product code")} className="col-span-2">
             <input
               value={form.product_code}
               onChange={set("product_code")}
@@ -92,7 +94,7 @@ export function AddProductModal({
               className={fieldInputClass}
             />
           </Field>
-          <Field label="Wholesale price">
+          <Field label={t("Wholesale price")}>
             <input
               type="number"
               step="0.01"
@@ -101,7 +103,7 @@ export function AddProductModal({
               className={`${fieldInputClass} tabular`}
             />
           </Field>
-          <Field label="Retail price">
+          <Field label={t("Retail price")}>
             <input
               type="number"
               step="0.01"
@@ -112,7 +114,7 @@ export function AddProductModal({
           </Field>
         </div>
 
-        <Field label="Target customers">
+        <Field label={t("Target customers")}>
           <textarea
             dir="auto"
             rows={2}
@@ -121,7 +123,7 @@ export function AddProductModal({
             className={fieldTextareaClass}
           />
         </Field>
-        <Field label="Key features">
+        <Field label={t("Key features")}>
           <textarea
             dir="auto"
             rows={2}
@@ -130,7 +132,7 @@ export function AddProductModal({
             className={fieldTextareaClass}
           />
         </Field>
-        <Field label="Common questions">
+        <Field label={t("Common questions")}>
           <textarea
             dir="auto"
             rows={2}
@@ -139,7 +141,7 @@ export function AddProductModal({
             className={fieldTextareaClass}
           />
         </Field>
-        <Field label="Payment methods">
+        <Field label={t("Payment methods")}>
           <textarea
             dir="auto"
             rows={2}
@@ -148,7 +150,7 @@ export function AddProductModal({
             className={fieldTextareaClass}
           />
         </Field>
-        <Field label="Delivery info">
+        <Field label={t("Delivery info")}>
           <textarea
             dir="auto"
             rows={2}
@@ -157,7 +159,7 @@ export function AddProductModal({
             className={fieldTextareaClass}
           />
         </Field>
-        <Field label="How you're different from competitors">
+        <Field label={t("How you're different from competitors")}>
           <textarea
             dir="auto"
             rows={2}
@@ -166,7 +168,7 @@ export function AddProductModal({
             className={fieldTextareaClass}
           />
         </Field>
-        <Field label="Special offers">
+        <Field label={t("Special offers")}>
           <textarea
             dir="auto"
             rows={2}
@@ -182,14 +184,14 @@ export function AddProductModal({
             onClick={onClose}
             className="rounded-md border border-paper-line px-4 py-2 text-sm font-medium text-ink-soft"
           >
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             type="submit"
             disabled={saving || !form.product_name.trim()}
             className="rounded-md bg-ink px-4 py-2 text-sm font-semibold uppercase tracking-wide text-paper-raised disabled:opacity-40"
           >
-            {saving ? "Saving…" : "Add product"}
+            {saving ? t("Saving…") : t("Add product")}
           </button>
         </div>
       </form>

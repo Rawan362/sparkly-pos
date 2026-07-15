@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Modal } from "@/components/ui/Modal";
 import { Field, fieldInputClass, fieldTextareaClass } from "@/components/ui/Field";
+import { useSettings } from "@/lib/SettingsContext";
 import type { OrderStatus } from "@/lib/types";
 
 const STATUSES: OrderStatus[] = ["PENDING", "SHIPPED", "DELIVERED", "CANCELLED"];
@@ -26,6 +27,7 @@ export function AddOrderModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const { t } = useSettings();
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
 
@@ -48,13 +50,12 @@ export function AddOrderModal({
   };
 
   return (
-    <Modal title="New Order" onClose={onClose}>
+    <Modal title={t("New Order")} onClose={onClose}>
       <form onSubmit={submit} className="flex flex-col gap-3">
         <p className="-mt-1 text-sm text-ink-soft">
-          For orders taken outside WhatsApp/Telegram — a walk-in or phone
-          customer.
+          {t("For orders taken outside WhatsApp/Telegram — a walk-in or phone customer.")}
         </p>
-        <Field label="Customer phone">
+        <Field label={t("Customer phone")}>
           <input
             autoFocus
             value={form.phone}
@@ -63,7 +64,7 @@ export function AddOrderModal({
             className={fieldInputClass}
           />
         </Field>
-        <Field label="Product">
+        <Field label={t("Product")}>
           <input
             dir="auto"
             value={form.product_name}
@@ -74,7 +75,7 @@ export function AddOrderModal({
           />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Product price">
+          <Field label={t("Product price")}>
             <input
               type="number"
               step="0.01"
@@ -85,7 +86,7 @@ export function AddOrderModal({
               className={`${fieldInputClass} tabular`}
             />
           </Field>
-          <Field label="Order total">
+          <Field label={t("Order total")}>
             <input
               type="number"
               step="0.01"
@@ -97,7 +98,7 @@ export function AddOrderModal({
             />
           </Field>
         </div>
-        <Field label="Delivery address">
+        <Field label={t("Delivery address")}>
           <textarea
             dir="auto"
             rows={2}
@@ -108,7 +109,7 @@ export function AddOrderModal({
             className={fieldTextareaClass}
           />
         </Field>
-        <Field label="Status">
+        <Field label={t("Status")}>
           <select
             value={form.order_status}
             onChange={(e) =>
@@ -121,7 +122,7 @@ export function AddOrderModal({
           >
             {STATUSES.map((s) => (
               <option key={s} value={s}>
-                {s}
+                {t(s)}
               </option>
             ))}
           </select>
@@ -133,14 +134,14 @@ export function AddOrderModal({
             onClick={onClose}
             className="rounded-md border border-paper-line px-4 py-2 text-sm font-medium text-ink-soft"
           >
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             type="submit"
             disabled={saving || !form.phone.trim() || !form.product_name.trim()}
             className="rounded-md bg-ink px-4 py-2 text-sm font-semibold uppercase tracking-wide text-paper-raised disabled:opacity-40"
           >
-            {saving ? "Saving…" : "Create order"}
+            {saving ? t("Saving…") : t("Create order")}
           </button>
         </div>
       </form>

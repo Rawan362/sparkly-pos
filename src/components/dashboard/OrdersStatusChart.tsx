@@ -12,6 +12,7 @@ import {
   LabelList,
 } from "recharts";
 import { ChartFrame } from "./ChartFrame";
+import { useSettings } from "@/lib/SettingsContext";
 import type { OrderStatus } from "@/lib/types";
 
 export type StatusCount = { status: OrderStatus; count: number };
@@ -30,25 +31,26 @@ function CustomTooltip({
   active?: boolean;
   payload?: Array<{ payload: StatusCount }>;
 }) {
+  const { t } = useSettings();
   if (!active || !payload?.length) return null;
   const { status, count } = payload[0].payload;
   return (
     <div className="paper-card px-3 py-2 text-sm shadow-md">
-      <p className="text-ink-soft">{status}</p>
+      <p className="text-ink-soft">{t(status)}</p>
       <p className="tabular font-semibold text-ink">{count.toLocaleString()}</p>
     </div>
   );
 }
 
 export function OrdersStatusChart({ data }: { data: StatusCount[] }) {
+  const { t } = useSettings();
   const total = data.reduce((sum, d) => sum + d.count, 0);
 
   if (total === 0) {
     return (
       <ChartFrame title="Orders by status">
         <p className="flex h-64 items-center justify-center text-center text-sm text-ink-soft">
-          No orders yet — orders will appear here once Ahmad starts closing
-          deals.
+          {t("No orders yet — orders will appear here once Ahmad starts closing deals.")}
         </p>
       </ChartFrame>
     );

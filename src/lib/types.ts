@@ -40,6 +40,28 @@ export type PosSettings = {
   auto_invoice_active: boolean;
   invoice_prefix: string | null;
   next_invoice_number: number | null;
+  language: string;
+  currency: string;
+};
+
+export type Location = {
+  id: string;
+  chat_id: string;
+  name: string;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+  is_default: boolean;
+  created_at: string;
+};
+
+export type ProductStockByLocation = {
+  id: string;
+  product_id: string;
+  location_id: string;
+  stock_quantity: number | null;
+  low_stock_threshold: number | null;
+  updated_at: string;
 };
 
 export type PricingTier = {
@@ -106,4 +128,5 @@ export type Order = {
   amount_paid: number | null;
   invoice_number: string | null;
   is_wholesale: boolean;
+  location_id: string | null;
 };

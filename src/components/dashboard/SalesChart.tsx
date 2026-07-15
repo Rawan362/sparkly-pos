@@ -10,6 +10,7 @@ import {
   Tooltip,
 } from "recharts";
 import { ChartFrame } from "./ChartFrame";
+import { useSettings } from "@/lib/SettingsContext";
 
 export type SalesPoint = { date: string; label: string; total: number };
 
@@ -22,12 +23,13 @@ function CustomTooltip({
   payload?: Array<{ value: number }>;
   label?: string;
 }) {
+  const { formatMoney } = useSettings();
   if (!active || !payload?.length) return null;
   return (
     <div className="paper-card px-3 py-2 text-sm shadow-md">
       <p className="text-ink-soft">{label}</p>
       <p className="tabular font-semibold text-ink">
-        {payload[0].value.toLocaleString()}
+        {formatMoney(payload[0].value)}
       </p>
     </div>
   );
@@ -42,11 +44,12 @@ export function SalesChart({
   title?: string;
   emptyMessage?: string;
 }) {
+  const { t, formatMoney } = useSettings();
   if (data.length === 0) {
     return (
       <ChartFrame title={title}>
         <p className="flex h-64 items-center justify-center text-center text-sm text-ink-soft">
-          {emptyMessage}
+          {t(emptyMessage)}
         </p>
       </ChartFrame>
     );
@@ -75,7 +78,7 @@ export function SalesChart({
               tick={{ fill: "var(--color-ink-faint)", fontSize: 12 }}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(v: number) => v.toLocaleString()}
+              tickFormatter={(v: number) => formatMoney(v)}
             />
             <Tooltip
               content={<CustomTooltip />}

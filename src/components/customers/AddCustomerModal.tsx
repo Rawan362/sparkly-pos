@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Modal } from "@/components/ui/Modal";
 import { Field, fieldInputClass } from "@/components/ui/Field";
+import { useSettings } from "@/lib/SettingsContext";
 
 export function AddCustomerModal({
   sellerId,
@@ -14,6 +15,7 @@ export function AddCustomerModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const { t } = useSettings();
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
   const [isWholesale, setIsWholesale] = useState(false);
@@ -37,7 +39,7 @@ export function AddCustomerModal({
     if (error) {
       setError(
         error.code === "23505"
-          ? "A customer with this phone number already exists."
+          ? t("A customer with this phone number already exists.")
           : error.message
       );
       return;
@@ -47,9 +49,9 @@ export function AddCustomerModal({
   };
 
   return (
-    <Modal title="New Customer" onClose={onClose}>
+    <Modal title={t("New Customer")} onClose={onClose}>
       <form onSubmit={submit} className="flex flex-col gap-3">
-        <Field label="Phone">
+        <Field label={t("Phone")}>
           <input
             autoFocus
             value={phone}
@@ -58,7 +60,7 @@ export function AddCustomerModal({
             className={fieldInputClass}
           />
         </Field>
-        <Field label="Name">
+        <Field label={t("Name")}>
           <input
             dir="auto"
             value={name}
@@ -73,7 +75,7 @@ export function AddCustomerModal({
             onChange={(e) => setIsWholesale(e.target.checked)}
             className="h-4 w-4 accent-[var(--color-brass)]"
           />
-          Wholesale customer
+          {t("Wholesale customer")}
         </label>
         <label className="flex items-center gap-2 text-sm text-ink-soft">
           <input
@@ -82,7 +84,7 @@ export function AddCustomerModal({
             onChange={(e) => setIsVip(e.target.checked)}
             className="h-4 w-4 accent-[var(--color-brass)]"
           />
-          VIP
+          {t("VIP")}
         </label>
 
         {error && <p className="text-sm text-stamp-red">{error}</p>}
@@ -93,14 +95,14 @@ export function AddCustomerModal({
             onClick={onClose}
             className="rounded-md border border-paper-line px-4 py-2 text-sm font-medium text-ink-soft"
           >
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             type="submit"
             disabled={saving || !phone.trim()}
             className="rounded-md bg-ink px-4 py-2 text-sm font-semibold uppercase tracking-wide text-paper-raised disabled:opacity-40"
           >
-            {saving ? "Saving…" : "Add customer"}
+            {saving ? t("Saving…") : t("Add customer")}
           </button>
         </div>
       </form>

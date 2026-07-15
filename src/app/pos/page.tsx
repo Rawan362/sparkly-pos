@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useSeller } from "@/lib/SellerContext";
+import { useSettings } from "@/lib/SettingsContext";
+import { useLocations } from "@/lib/useLocations";
 import type {
   Customer,
   CustomUnit,
@@ -27,6 +29,9 @@ const WHOLESALE = "wholesale";
 
 export default function PosPage() {
   const { sellerId } = useSeller();
+  const { t, formatMoney } = useSettings();
+  const { locations, defaultLocation } = useLocations();
+  const [locationId, setLocationId] = useState<string | null>(null);
   const [products, setProducts] = useState<SellerProduct[] | null>(null);
   const [customers, setCustomers] = useState<Customer[] | null>(null);
   const [tiers, setTiers] = useState<PricingTier[] | null>(null);
@@ -100,9 +105,17 @@ export default function PosPage() {
         auto_invoice_active: false,
         invoice_prefix: null,
         next_invoice_number: null,
+        language: "en",
+        currency: "USD",
       }
     );
   }, [sellerId]);
+
+  useEffect(() => {
+    // Adopts the default location once useLocations resolves it.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!locationId && defaultLocation) setLocationId(defaultLocation.id);
+  }, [locationId, defaultLocation]);
 
   useEffect(() => {
     // Loads the seller's catalog/customers/tiers once for this checkout
@@ -241,6 +254,7 @@ export default function PosPage() {
       amount_paid: linePaid[i],
       invoice_number: invoiceNumber,
       is_wholesale: isWholesale,
+      location_id: locationId,
     }));
 
     const { error: insertError } = await supabase.from("orders").insert(rows);
@@ -310,15 +324,33 @@ export default function PosPage() {
 
   return (
     <div>
-      <div className="mb-5">
-        <h1 className="text-2xl font-semibold">POS</h1>
-        <p className="text-sm text-ink-soft">
-          Ring up an in-person or phone sale on the spot.
-        </p>
+      <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold">{t("POS")}</h1>
+          <p className="text-sm text-ink-soft">
+            {t("Ring up an in-person or phone sale on the spot.")}
+          </p>
+        </div>
+        {locations && locations.length > 1 && (
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-ink-soft">{t("Location")}</label>
+            <select
+              value={locationId ?? ""}
+              onChange={(e) => setLocationId(e.target.value)}
+              className="rounded-md border border-paper-line bg-paper px-3 py-2 text-sm outline-none focus:border-brass"
+            >
+              {locations.map((loc) => (
+                <option key={loc.id} value={loc.id}>
+                  {loc.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {!products || !customers || !tiers || !units ? (
-        <p className="text-ink-soft">Loading POS…</p>
+        <p className="text-ink-soft">{t("Loading POS…")}</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
           <div className="lg:col-span-3">
@@ -332,11 +364,11 @@ export default function PosPage() {
           <div className="flex flex-col gap-3 lg:col-span-2">
             <div className="paper-card px-4 py-4">
               <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-ink-soft">
-                Ticket
+                {t("Ticket")}
               </h2>
               {lines.length === 0 ? (
                 <p className="py-6 text-center text-sm text-ink-faint">
-                  Cart is empty — tap a product to add it.
+                  {t("Cart is empty — tap a product to add it.")}
                 </p>
               ) : (
                 <div className="flex flex-col divide-y divide-paper-line">
@@ -350,7 +382,7 @@ export default function PosPage() {
                           {l.product.product_name}
                         </p>
                         <p className="tabular text-xs text-ink-faint">
-                          {l.unitPrice.toLocaleString()} each
+                          {formatMoney(l.unitPrice)} {t("each")}
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-1.5">
@@ -380,7 +412,7 @@ export default function PosPage() {
                         </button>
                       </div>
                       <p className="tabular w-16 shrink-0 text-right text-sm font-medium">
-                        {l.lineSubtotal.toLocaleString()}
+                        {formatMoney(l.lineSubtotal)}
                       </p>
                       <button
                         type="button"
@@ -399,7 +431,7 @@ export default function PosPage() {
             <div className="paper-card flex flex-col gap-3 px-4 py-4">
               <div>
                 <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
-                  Customer
+                  {t("Customer")}
                 </p>
                 <CustomerPicker
                   customers={customers}
@@ -410,19 +442,19 @@ export default function PosPage() {
 
               <div>
                 <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
-                  Pricing tier
+                  {t("Pricing tier")}
                 </p>
                 <select
                   value={selectedPricing}
                   onChange={(e) => setSelectedPricing(e.target.value)}
                   className="w-full rounded-md border border-paper-line bg-paper px-3 py-2 text-sm outline-none focus:border-brass"
                 >
-                  <option value="">Retail (no tier)</option>
-                  <option value={WHOLESALE}>Wholesale (product price)</option>
-                  {tiers.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name} ({t.adjustment_percent > 0 ? "+" : ""}
-                      {t.adjustment_percent}%)
+                  <option value="">{t("Retail (no tier)")}</option>
+                  <option value={WHOLESALE}>{t("Wholesale (product price)")}</option>
+                  {tiers.map((tier) => (
+                    <option key={tier.id} value={tier.id}>
+                      {tier.name} ({tier.adjustment_percent > 0 ? "+" : ""}
+                      {tier.adjustment_percent}%)
                     </option>
                   ))}
                 </select>
@@ -430,7 +462,7 @@ export default function PosPage() {
 
               <div>
                 <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
-                  Discount
+                  {t("Discount")}
                 </p>
                 <div className="flex gap-2">
                   <select
@@ -441,7 +473,7 @@ export default function PosPage() {
                     className="rounded-md border border-paper-line bg-paper px-2 py-2 text-sm outline-none focus:border-brass"
                   >
                     <option value="percent">%</option>
-                    <option value="amount">Amount</option>
+                    <option value="amount">{t("Amount")}</option>
                   </select>
                   <input
                     type="number"
@@ -456,7 +488,7 @@ export default function PosPage() {
 
               <div>
                 <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
-                  Shipping charges
+                  {t("Shipping charges")}
                 </p>
                 <input
                   type="number"
@@ -470,7 +502,7 @@ export default function PosPage() {
 
               <div>
                 <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
-                  Payment
+                  {t("Payment")}
                 </p>
                 <div className="flex gap-2">
                   <select
@@ -480,7 +512,7 @@ export default function PosPage() {
                   >
                     {PAYMENT_METHODS.map((m) => (
                       <option key={m} value={m}>
-                        {m}
+                        {t(m)}
                       </option>
                     ))}
                   </select>
@@ -493,9 +525,9 @@ export default function PosPage() {
                     }
                     className="flex-1 rounded-md border border-paper-line bg-paper px-3 py-2 text-sm outline-none focus:border-brass"
                   >
-                    <option value="full">Paid in full</option>
-                    <option value="partial">Partial payment</option>
-                    <option value="debt">Debt (pay later)</option>
+                    <option value="full">{t("Paid in full")}</option>
+                    <option value="partial">{t("Partial payment")}</option>
+                    <option value="debt">{t("Debt (pay later)")}</option>
                   </select>
                 </div>
                 {paymentStatus === "partial" && (
@@ -504,7 +536,7 @@ export default function PosPage() {
                     min="0"
                     value={partialAmount}
                     onChange={(e) => setPartialAmount(e.target.value)}
-                    placeholder="Amount paid now"
+                    placeholder={t("Amount paid now")}
                     className="mt-2 w-full rounded-md border border-paper-line bg-paper px-3 py-2 text-sm tabular outline-none focus:border-brass"
                   />
                 )}
@@ -512,39 +544,39 @@ export default function PosPage() {
 
               <div className="border-t border-paper-line pt-3 text-sm">
                 <div className="flex justify-between text-ink-soft">
-                  <span>Subtotal</span>
-                  <span className="tabular">{subtotal.toLocaleString()}</span>
+                  <span>{t("Subtotal")}</span>
+                  <span className="tabular">{formatMoney(subtotal)}</span>
                 </div>
                 {discountAmount > 0 && (
                   <div className="flex justify-between text-ink-soft">
-                    <span>Discount</span>
+                    <span>{t("Discount")}</span>
                     <span className="tabular">
-                      −{discountAmount.toLocaleString()}
+                      −{formatMoney(discountAmount)}
                     </span>
                   </div>
                 )}
                 {shippingAmount > 0 && (
                   <div className="flex justify-between text-ink-soft">
-                    <span>Shipping</span>
+                    <span>{t("Shipping")}</span>
                     <span className="tabular">
-                      +{shippingAmount.toLocaleString()}
+                      +{formatMoney(shippingAmount)}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between text-lg font-semibold">
-                  <span>Total</span>
-                  <span className="tabular">{total.toLocaleString()}</span>
+                  <span>{t("Total")}</span>
+                  <span className="tabular">{formatMoney(total)}</span>
                 </div>
                 {paymentStatus === "partial" && (
                   <div className="flex justify-between text-ink-soft">
-                    <span>Paid now</span>
-                    <span className="tabular">{paidAmount.toLocaleString()}</span>
+                    <span>{t("Paid now")}</span>
+                    <span className="tabular">{formatMoney(paidAmount)}</span>
                   </div>
                 )}
                 {paymentStatus === "debt" && (
                   <div className="flex justify-between text-stamp-red">
-                    <span>On debt</span>
-                    <span className="tabular">{total.toLocaleString()}</span>
+                    <span>{t("On debt")}</span>
+                    <span className="tabular">{formatMoney(total)}</span>
                   </div>
                 )}
               </div>
@@ -556,7 +588,7 @@ export default function PosPage() {
                 disabled={saving || lines.length === 0}
                 className="rounded-md bg-ink px-4 py-3 text-sm font-semibold uppercase tracking-wide text-paper-raised disabled:opacity-40"
               >
-                {saving ? "Completing sale…" : "Complete Sale"}
+                {saving ? t("Completing sale…") : t("Complete Sale")}
               </button>
             </div>
           </div>

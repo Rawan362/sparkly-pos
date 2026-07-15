@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, IBM_Plex_Sans, IBM_Plex_Mono, Noto_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 import { SellerProvider } from "@/lib/SellerContext";
+import { SettingsProvider } from "@/lib/SettingsContext";
 import { AppShell } from "@/components/AppShell";
 
 const fraunces = Fraunces({
@@ -45,7 +46,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col antialiased">
         <SellerProvider>
-          <AppShell>{children}</AppShell>
+          <SettingsProvider>
+            <AppShell>{children}</AppShell>
+          </SettingsProvider>
         </SellerProvider>
       </body>
     </html>

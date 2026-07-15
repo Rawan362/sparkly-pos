@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useSettings } from "@/lib/SettingsContext";
 
 export function StatTile({
   label,
@@ -17,11 +18,12 @@ export function StatTile({
     green: "text-stamp-green",
     red: "text-stamp-red",
   }[tone];
+  const { t } = useSettings();
 
   const content = (
     <>
       <p className="text-xs font-semibold uppercase tracking-wide text-ink-faint">
-        {label}
+        {t(label)}
       </p>
       <p className={`tabular mt-1 text-2xl font-semibold ${toneClass}`}>
         {value}

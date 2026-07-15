@@ -1,3 +1,5 @@
+import { useSettings } from "@/lib/SettingsContext";
+
 export type DateRangeKey = "all" | "today" | "7d" | "30d" | "90d" | "year" | "custom";
 
 export type CustomRange = { start: string; end: string };
@@ -59,6 +61,7 @@ export function DateRangeFilter({
   customRange: CustomRange;
   onCustomRangeChange: (next: CustomRange) => void;
 }) {
+  const { t } = useSettings();
   return (
     <div className="flex flex-wrap items-center justify-end gap-2">
       {value === "custom" && (
@@ -73,7 +76,7 @@ export function DateRangeFilter({
             }
             className={dateInputClass}
           />
-          <span className="text-xs text-ink-faint">to</span>
+          <span className="text-xs text-ink-faint">{t("to")}</span>
           <input
             type="date"
             aria-label="Custom range end"
@@ -94,7 +97,7 @@ export function DateRangeFilter({
       >
         {RANGE_OPTIONS.map((o) => (
           <option key={o.value} value={o.value}>
-            {o.label}
+            {t(o.label)}
           </option>
         ))}
       </select>
