@@ -6,7 +6,9 @@ import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { useSeller } from "@/lib/SellerContext";
 
-const TABS = [
+type NavItem = { href: string; label: string };
+
+const PRIMARY_TABS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/pos", label: "POS" },
   { href: "/products", label: "Products" },
@@ -17,8 +19,17 @@ const TABS = [
   { href: "/invoices", label: "Invoices" },
   { href: "/expenses", label: "Expenses" },
   { href: "/customers", label: "Customers" },
-  { href: "/settings", label: "Settings" },
 ];
+
+const INSIGHTS_TABS: NavItem[] = [
+  { href: "/reports", label: "Reports" },
+  { href: "/insights", label: "Insights" },
+  { href: "/broadcasts", label: "Broadcasts" },
+];
+
+const SETTINGS_TABS: NavItem[] = [{ href: "/settings", label: "Settings" }];
+
+const ALL_TABS: NavItem[] = [...PRIMARY_TABS, ...INSIGHTS_TABS, ...SETTINGS_TABS];
 
 const COLLAPSE_STORAGE_KEY = "sparkly.sidebarCollapsed";
 
@@ -99,25 +110,33 @@ export function Sidebar() {
           <div className="shrink-0 sm:hidden">{switchSellerControl}</div>
         </div>
 
-        <nav className="flex gap-1 overflow-x-auto px-2 pb-2 sm:flex-1 sm:flex-col sm:gap-0.5 sm:overflow-x-visible sm:overflow-y-auto sm:px-3 sm:pb-4">
-          {TABS.map((tab) => {
-            const active = pathname?.startsWith(tab.href);
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className={clsx(
-                  "shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  "border-b-2 sm:border-b-0 sm:border-l-4",
-                  active
-                    ? "border-brass text-ink sm:bg-brass-soft/50"
-                    : "border-transparent text-ink-faint hover:text-ink-soft"
-                )}
-              >
-                {tab.label}
-              </Link>
-            );
-          })}
+        {/* Mobile: a single flat scrollable row -- grouping doesn't read well
+            as horizontal pills, so every link (including Insights-section
+            ones) is shown at the same level. */}
+        <nav className="flex gap-1 overflow-x-auto px-2 pb-2 sm:hidden">
+          {ALL_TABS.map((tab) => (
+            <NavLink key={tab.href} tab={tab} active={pathname?.startsWith(tab.href)} />
+          ))}
+        </nav>
+
+        {/* Desktop: grouped vertical list. */}
+        <nav className="hidden sm:flex sm:flex-1 sm:flex-col sm:gap-0.5 sm:overflow-y-auto sm:px-3 sm:pb-4">
+          {PRIMARY_TABS.map((tab) => (
+            <NavLink key={tab.href} tab={tab} active={pathname?.startsWith(tab.href)} />
+          ))}
+
+          <p className="mt-4 mb-1 px-3 text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint">
+            Insights
+          </p>
+          {INSIGHTS_TABS.map((tab) => (
+            <NavLink key={tab.href} tab={tab} active={pathname?.startsWith(tab.href)} />
+          ))}
+
+          <div className="mt-4 border-t border-paper-line pt-2">
+            {SETTINGS_TABS.map((tab) => (
+              <NavLink key={tab.href} tab={tab} active={pathname?.startsWith(tab.href)} />
+            ))}
+          </div>
         </nav>
 
         <div className="hidden border-t border-paper-line px-3 py-3 sm:block sm:mt-auto">
@@ -125,5 +144,22 @@ export function Sidebar() {
         </div>
       </aside>
     </>
+  );
+}
+
+function NavLink({ tab, active }: { tab: NavItem; active?: boolean }) {
+  return (
+    <Link
+      href={tab.href}
+      className={clsx(
+        "shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors",
+        "border-b-2 sm:border-b-0 sm:border-l-4",
+        active
+          ? "border-brass text-ink sm:bg-brass-soft/50"
+          : "border-transparent text-ink-faint hover:text-ink-soft"
+      )}
+    >
+      {tab.label}
+    </Link>
   );
 }

@@ -9,12 +9,15 @@ import { InlineEdit } from "@/components/ui/InlineEdit";
 import { Toggle } from "@/components/ui/Toggle";
 import { Stamp } from "@/components/ui/Stamp";
 import { AddProductModal } from "@/components/products/AddProductModal";
+import { BulkPriceAdjustModal } from "@/components/products/BulkPriceAdjustModal";
 
 export default function ProductsPage() {
   const { sellerId } = useSeller();
   const [products, setProducts] = useState<SellerProduct[] | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [showBulkPrice, setShowBulkPrice] = useState(false);
 
   const load = useCallback(() => {
     if (!sellerId) return;
@@ -56,6 +59,43 @@ export default function ProductsPage() {
       );
     }
   };
+
+  const toggleSelected = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (!products) return;
+    setSelected((prev) =>
+      prev.size === products.length ? new Set() : new Set(products.map((p) => p.id))
+    );
+  };
+
+  const bulkSetActive = async (isActive: boolean) => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    const prevProducts = products;
+    setProducts(
+      (prev) => prev?.map((p) => (selected.has(p.id) ? { ...p, is_active: isActive } : p)) ?? null
+    );
+    const { error } = await supabase
+      .from("seller_products")
+      .update({ is_active: isActive })
+      .in("id", ids);
+    if (error) {
+      setProducts(prevProducts ?? null);
+      setSaveError(error.message);
+    } else {
+      setSelected(new Set());
+    }
+  };
+
+  const selectedProducts = products?.filter((p) => selected.has(p.id)) ?? [];
 
   return (
     <div>
@@ -102,6 +142,51 @@ export default function ProductsPage() {
         </div>
       )}
 
+      {selected.size > 0 && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-brass bg-brass-soft/50 px-4 py-2.5 text-sm">
+          <span className="font-medium text-brass-dark tabular">
+            {selected.size} selected
+          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => bulkSetActive(true)}
+              className="rounded-md border border-paper-line bg-paper-raised px-3 py-1.5 font-medium text-ink-soft hover:border-brass"
+            >
+              Activate
+            </button>
+            <button
+              onClick={() => bulkSetActive(false)}
+              className="rounded-md border border-paper-line bg-paper-raised px-3 py-1.5 font-medium text-ink-soft hover:border-brass"
+            >
+              Deactivate
+            </button>
+            <button
+              onClick={() => setShowBulkPrice(true)}
+              className="rounded-md border border-paper-line bg-paper-raised px-3 py-1.5 font-medium text-ink-soft hover:border-brass"
+            >
+              Adjust price by %…
+            </button>
+            <button
+              onClick={() => setSelected(new Set())}
+              className="rounded-md px-3 py-1.5 font-medium text-ink-faint hover:text-ink"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showBulkPrice && (
+        <BulkPriceAdjustModal
+          products={selectedProducts}
+          onClose={() => setShowBulkPrice(false)}
+          onApplied={() => {
+            setSelected(new Set());
+            load();
+          }}
+        />
+      )}
+
       {!products ? (
         <p className="text-ink-soft">Loading catalog…</p>
       ) : products.length === 0 ? (
@@ -114,6 +199,15 @@ export default function ProductsPage() {
           <table className="w-full min-w-[720px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-paper-line text-left text-xs uppercase tracking-wide text-ink-faint">
+                <th className="px-4 py-3 font-medium">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all products"
+                    checked={products.length > 0 && selected.size === products.length}
+                    onChange={toggleSelectAll}
+                    className="h-4 w-4 accent-brass"
+                  />
+                </th>
                 <th className="px-4 py-3 font-medium">Product</th>
                 <th className="px-4 py-3 font-medium">Code</th>
                 <th className="px-4 py-3 font-medium">Category</th>
@@ -129,6 +223,15 @@ export default function ProductsPage() {
                   key={p.id}
                   className="border-b border-paper-line last:border-0"
                 >
+                  <td className="px-4 py-1.5">
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${p.product_name}`}
+                      checked={selected.has(p.id)}
+                      onChange={() => toggleSelected(p.id)}
+                      className="h-4 w-4 accent-brass"
+                    />
+                  </td>
                   <td className="px-2 py-1.5 font-medium" dir="auto">
                     <InlineEdit
                       value={p.product_name ?? ""}

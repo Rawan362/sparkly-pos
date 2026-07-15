@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 import { supabase } from "./supabaseClient";
 
 /**
@@ -13,9 +13,16 @@ export function useRealtimeRefresh(
   filter: string | undefined,
   onChange: () => void
 ) {
+  // supabase.channel() reuses an existing channel object if one with the
+  // same topic string is already registered, so two components watching
+  // the same table+filter at once (e.g. a page and the always-mounted
+  // notifications bell) would otherwise share -- and fight over -- one
+  // channel. useId() keeps every hook instance's channel independent.
+  const instanceId = useId();
+
   useEffect(() => {
     const channel = supabase
-      .channel(`realtime:${table}:${filter ?? "all"}`)
+      .channel(`realtime:${table}:${filter ?? "all"}:${instanceId}`)
       .on(
         "postgres_changes",
         {

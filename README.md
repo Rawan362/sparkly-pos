@@ -27,7 +27,9 @@ instead of touching `localStorage` or a chat ID directly.
 ## Pages
 
 - **Products** — catalog table, inline-edit name/category/prices, active
-  toggle, stock-tracking indicator.
+  toggle, stock-tracking indicator, and bulk selection (activate,
+  deactivate, or adjust wholesale/retail price by a percentage across many
+  products at once).
 - **Stock** — active products, per-product stock tracking toggle, quantity
   and low-stock threshold editing, a stamped flag when a product is at or
   below its threshold.
@@ -37,8 +39,22 @@ instead of touching `localStorage` or a chat ID directly.
   customer/product/total/address at a glance.
 - **Customers** — searchable customer list with orders, spend, VIP and
   wholesale/retail status.
+- **Reports** — best-selling products by order count and by revenue over a
+  selectable date range, a per-product profit estimate (retail price minus
+  average purchase cost, when purchase-cost data exists), and sales by
+  day-of-week.
+- **Insights** — read-only, collective/anonymized data from
+  `product_playbooks` for this seller's product categories: common
+  objections, responses that worked, best opening messages, and close
+  rates across sellers.
+- **Broadcasts** — read-only view of this seller's `broadcast_log` rows
+  (phone, status, last broadcast, follow-up stage).
 - **Settings** — the three `pos_settings` toggles (inventory tracking,
   low-stock alerts, auto-invoicing). Everything defaults to off.
+
+A top bar above every page has a global search (products, customers,
+orders by name/phone) and a notifications bell (low stock, orders pending
+48h+, unpaid invoices) computed live from existing data.
 
 ## Design
 
@@ -100,7 +116,10 @@ HTML/JS/CSS works the same way — point it at `out/` after `npm run build`.
 
 - No new tables were created — this only reads/writes the existing
   `sellers`, `seller_products`, `pos_settings`, `pricing_tiers`,
-  `custom_units`, `customers`, and `orders` tables.
+  `custom_units`, `customers`, and `orders` tables. Reports/Insights/
+  Broadcasts additionally read from a purchases-style table, `broadcast_log`,
+  and `product_playbooks` *if* they exist elsewhere in the project — see
+  `src/lib/schemaProbe.ts` and `supabase/insights_readonly_access.sql`.
 - Every page subscribes to Supabase Realtime on its table (scoped to the
   current seller) so changes made by the bot, or in another browser tab,
   appear without a manual refresh.
