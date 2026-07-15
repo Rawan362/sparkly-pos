@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useSeller } from "@/lib/SellerContext";
+import { useSettings } from "@/lib/SettingsContext";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import type { Purchase, SellerProduct, Supplier } from "@/lib/types";
 import { AddPurchaseModal } from "@/components/purchases/AddPurchaseModal";
 
 export default function PurchasesPage() {
   const { sellerId } = useSeller();
+  const { t, formatMoney } = useSettings();
   const [purchases, setPurchases] = useState<Purchase[] | null>(null);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<SellerProduct[]>([]);
@@ -61,10 +63,9 @@ export default function PurchasesPage() {
     <div>
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Purchases</h1>
+          <h1 className="text-2xl font-semibold">{t("Purchases")}</h1>
           <p className="text-sm text-ink-soft">
-            Stock bought in from suppliers — recording one restocks the
-            product automatically.
+            {t("Stock bought in from suppliers — recording one restocks the product automatically.")}
           </p>
         </div>
         <button
@@ -72,7 +73,7 @@ export default function PurchasesPage() {
           disabled={products.length === 0}
           className="shrink-0 rounded-md bg-ink px-4 py-2 text-sm font-semibold uppercase tracking-wide text-paper-raised disabled:opacity-40"
         >
-          + Record Purchase
+          {t("+ Record Purchase")}
         </button>
       </div>
 
@@ -87,29 +88,29 @@ export default function PurchasesPage() {
       )}
 
       {!purchases ? (
-        <p className="text-ink-soft">Loading purchases…</p>
+        <p className="text-ink-soft">{t("Loading purchases…")}</p>
       ) : products.length === 0 ? (
         <div className="paper-card px-6 py-10 text-center text-ink-soft">
-          Add a product on the Products page before recording a purchase.
+          {t("Add a product on the Products page before recording a purchase.")}
         </div>
       ) : purchases.length === 0 ? (
         <div className="paper-card px-6 py-10 text-center text-ink-soft">
-          No purchases logged yet.
+          {t("No purchases logged yet.")}
         </div>
       ) : (
         <div className="paper-card overflow-x-auto">
           <table className="w-full min-w-[680px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-paper-line text-left text-xs uppercase tracking-wide text-ink-faint">
-                <th className="px-4 py-3 font-medium">Date</th>
-                <th className="px-4 py-3 font-medium">Supplier</th>
-                <th className="px-4 py-3 font-medium">Product</th>
-                <th className="px-4 py-3 font-medium text-right">Quantity</th>
+                <th className="px-4 py-3 font-medium">{t("Date")}</th>
+                <th className="px-4 py-3 font-medium">{t("Supplier")}</th>
+                <th className="px-4 py-3 font-medium">{t("Product")}</th>
+                <th className="px-4 py-3 font-medium text-right">{t("Quantity")}</th>
                 <th className="px-4 py-3 font-medium text-right">
-                  Cost price
+                  {t("Cost price")}
                 </th>
                 <th className="px-4 py-3 font-medium text-right">
-                  Total cost
+                  {t("Total cost")}
                 </th>
               </tr>
             </thead>
@@ -132,12 +133,10 @@ export default function PurchasesPage() {
                     {p.quantity}
                   </td>
                   <td className="tabular px-4 py-2 text-right">
-                    {p.cost_price != null ? p.cost_price.toLocaleString() : "—"}
+                    {p.cost_price != null ? formatMoney(p.cost_price) : "—"}
                   </td>
                   <td className="tabular px-4 py-2 text-right font-medium">
-                    {totalCost(p) != null
-                      ? totalCost(p)!.toLocaleString()
-                      : "—"}
+                    {totalCost(p) != null ? formatMoney(totalCost(p)) : "—"}
                   </td>
                 </tr>
               ))}

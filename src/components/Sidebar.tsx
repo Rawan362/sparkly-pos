@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { useSeller } from "@/lib/SellerContext";
+import { useSettings } from "@/lib/SettingsContext";
 
 type NavLink = { href: string; label: string };
 type NavEntry =
@@ -56,6 +57,7 @@ function NavGroup({
 }) {
   const hasActiveChild = links.some((l) => pathname?.startsWith(l.href));
   const [open, setOpen] = useState(hasActiveChild);
+  const { t } = useSettings();
 
   return (
     <div className="contents sm:block">
@@ -66,7 +68,7 @@ function NavGroup({
           href={l.href}
           className={clsx(navLinkClass(pathname?.startsWith(l.href) ?? false), "sm:hidden")}
         >
-          {l.label}
+          {t(l.label)}
         </Link>
       ))}
 
@@ -76,7 +78,7 @@ function NavGroup({
         onClick={() => setOpen((o) => !o)}
         className="hidden w-full items-center justify-between gap-2 rounded-md px-3 pt-3 pb-1 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint transition-colors hover:text-brass-dark sm:flex"
       >
-        {label}
+        {t(label)}
         <span
           className={clsx(
             "text-base leading-none transition-transform duration-200 ease-out",
@@ -99,7 +101,7 @@ function NavGroup({
               href={l.href}
               className={navLinkClass(pathname?.startsWith(l.href) ?? false)}
             >
-              {l.label}
+              {t(l.label)}
             </Link>
           ))}
         </div>
@@ -111,6 +113,7 @@ function NavGroup({
 export function Sidebar() {
   const pathname = usePathname();
   const { sellerId, seller, signOut } = useSeller();
+  const { t } = useSettings();
   const [confirmingSignOut, setConfirmingSignOut] = useState(false);
   const [collapsed, setCollapsedState] = useState(false);
 
@@ -128,18 +131,18 @@ export function Sidebar() {
 
   const switchSellerControl = confirmingSignOut ? (
     <div className="flex items-center gap-2 text-xs">
-      <span className="text-ink-soft">Switch seller?</span>
+      <span className="text-ink-soft">{t("Switch seller?")}</span>
       <button
         onClick={signOut}
         className="rounded border border-stamp-red px-2 py-1 font-semibold text-stamp-red"
       >
-        Yes
+        {t("Yes")}
       </button>
       <button
         onClick={() => setConfirmingSignOut(false)}
         className="rounded border border-paper-line px-2 py-1 text-ink-soft"
       >
-        Cancel
+        {t("Cancel")}
       </button>
     </div>
   ) : (
@@ -147,7 +150,7 @@ export function Sidebar() {
       onClick={() => setConfirmingSignOut(true)}
       className="rounded border border-paper-line px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:border-brass hover:text-brass-dark sm:w-full"
     >
-      Switch seller
+      {t("Switch seller")}
     </button>
   );
 
@@ -179,7 +182,7 @@ export function Sidebar() {
               Sparkly POS
             </p>
             <p className="truncate text-sm text-ink-soft">
-              {seller?.business_name_location || `Seller ${sellerId}`}
+              {seller?.business_name_location || `${t("Seller")} ${sellerId}`}
             </p>
           </div>
           <div className="shrink-0 sm:hidden">{switchSellerControl}</div>
@@ -193,7 +196,7 @@ export function Sidebar() {
                 href={entry.href}
                 className={navLinkClass(pathname?.startsWith(entry.href) ?? false)}
               >
-                {entry.label}
+                {t(entry.label)}
               </Link>
             ) : (
               <NavGroup

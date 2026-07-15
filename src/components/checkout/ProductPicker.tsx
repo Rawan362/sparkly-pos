@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { SellerProduct } from "@/lib/types";
 import { Stamp } from "@/components/ui/Stamp";
+import { useSettings } from "@/lib/SettingsContext";
 
 export function ProductPicker({
   products,
@@ -13,6 +14,7 @@ export function ProductPicker({
   onAdd: (product: SellerProduct) => void;
   priceFor: (product: SellerProduct) => number;
 }) {
+  const { t, formatMoney } = useSettings();
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
@@ -30,13 +32,13 @@ export function ProductPicker({
       <input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search products…"
+        placeholder={t("Search products…")}
         className="mb-3 w-full rounded-md border border-paper-line bg-paper px-3 py-2 text-sm outline-none focus:border-brass"
       />
 
       {filtered.length === 0 ? (
         <p className="px-2 py-8 text-center text-sm text-ink-soft">
-          No products match.
+          {t("No products match.")}
         </p>
       ) : (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -55,13 +57,13 @@ export function ProductPicker({
                   {p.product_name}
                 </span>
                 <span className="tabular text-sm text-brass-dark">
-                  {priceFor(p).toLocaleString()}
+                  {formatMoney(priceFor(p))}
                 </span>
                 {outOfStock ? (
-                  <Stamp tone="red">Out of stock</Stamp>
+                  <Stamp tone="red">{t("Out of stock")}</Stamp>
                 ) : p.track_stock ? (
                   <span className="tabular text-xs text-ink-faint">
-                    {p.stock_quantity} in stock
+                    {p.stock_quantity} {t("in stock")}
                   </span>
                 ) : null}
               </button>

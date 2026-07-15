@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useSeller } from "@/lib/SellerContext";
+import { useSettings } from "@/lib/SettingsContext";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import type { CustomUnit } from "@/lib/types";
 import { Stamp } from "@/components/ui/Stamp";
 
 export default function UnitsPage() {
   const { sellerId } = useSeller();
+  const { t } = useSettings();
   const [units, setUnits] = useState<CustomUnit[] | null>(null);
   const [name, setName] = useState("");
   const [shortName, setShortName] = useState("");
@@ -60,20 +62,19 @@ export default function UnitsPage() {
   return (
     <div>
       <div className="mb-5">
-        <h1 className="text-2xl font-semibold">Units</h1>
+        <h1 className="text-2xl font-semibold">{t("Units")}</h1>
         <p className="text-sm text-ink-soft">
-          Custom units of measure Ahmad can attach to products — kilograms,
-          boxes, meters, anything you sell by.
+          {t("Custom units of measure Ahmad can attach to products — kilograms, boxes, meters, anything you sell by.")}
         </p>
       </div>
 
       {!units ? (
-        <p className="text-ink-soft">Loading units…</p>
+        <p className="text-ink-soft">{t("Loading units…")}</p>
       ) : (
         <div className="paper-card mb-6 divide-y divide-paper-line">
           {units.length === 0 ? (
             <p className="px-6 py-10 text-center text-ink-soft">
-              No custom units yet — add your first one below.
+              {t("No custom units yet — add your first one below.")}
             </p>
           ) : (
             units.map((u) => (
@@ -87,14 +88,14 @@ export default function UnitsPage() {
                     <span className="text-ink-faint">({u.short_name})</span>
                   </p>
                   {u.allow_decimal && (
-                    <Stamp tone="ink">Allows decimals</Stamp>
+                    <Stamp tone="ink">{t("Allows decimals")}</Stamp>
                   )}
                 </div>
                 <button
                   onClick={() => remove(u.id)}
                   className="shrink-0 text-xs font-medium text-stamp-red hover:opacity-70"
                 >
-                  Delete
+                  {t("Delete")}
                 </button>
               </div>
             ))
@@ -107,7 +108,7 @@ export default function UnitsPage() {
         className="paper-card flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-end"
       >
         <label className="flex-1 text-sm">
-          <span className="mb-1 block text-ink-soft">Unit name</span>
+          <span className="mb-1 block text-ink-soft">{t("Unit name")}</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -116,7 +117,7 @@ export default function UnitsPage() {
           />
         </label>
         <label className="text-sm sm:w-32">
-          <span className="mb-1 block text-ink-soft">Short name</span>
+          <span className="mb-1 block text-ink-soft">{t("Short name")}</span>
           <input
             value={shortName}
             onChange={(e) => setShortName(e.target.value)}
@@ -131,14 +132,14 @@ export default function UnitsPage() {
             onChange={(e) => setAllowDecimal(e.target.checked)}
             className="h-4 w-4 accent-[var(--color-brass)]"
           />
-          Allow decimals
+          {t("Allow decimals")}
         </label>
         <button
           type="submit"
           disabled={adding || !name.trim() || !shortName.trim()}
           className="rounded-md bg-ink px-4 py-2 text-sm font-semibold uppercase tracking-wide text-paper-raised disabled:opacity-40"
         >
-          Add unit
+          {t("Add unit")}
         </button>
       </form>
     </div>

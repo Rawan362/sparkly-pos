@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import clsx from "clsx";
 import { supabase } from "@/lib/supabaseClient";
 import { useSeller } from "@/lib/SellerContext";
+import { useSettings } from "@/lib/SettingsContext";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import type { Order, OrderStatus } from "@/lib/types";
 import { Stamp } from "@/components/ui/Stamp";
@@ -27,6 +28,7 @@ const statusTone: Record<OrderStatus, "green" | "red" | "ink" | "brass"> = {
 
 export default function OrdersPage() {
   const { sellerId } = useSeller();
+  const { t, formatMoney } = useSettings();
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [filter, setFilter] = useState<OrderStatus | "ALL">("ALL");
   const [showAdd, setShowAdd] = useState(false);
@@ -66,16 +68,16 @@ export default function OrdersPage() {
     <div>
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Orders</h1>
+          <h1 className="text-2xl font-semibold">{t("Orders")}</h1>
           <p className="text-sm text-ink-soft">
-            Orders customers place through Ahmad on WhatsApp/Telegram.
+            {t("Orders customers place through Ahmad on WhatsApp/Telegram.")}
           </p>
         </div>
         <button
           onClick={() => setShowAdd(true)}
           className="shrink-0 rounded-md bg-ink px-4 py-2 text-sm font-semibold uppercase tracking-wide text-paper-raised"
         >
-          + New Order
+          {t("+ New Order")}
         </button>
       </div>
 
@@ -108,16 +110,18 @@ export default function OrdersPage() {
                 : "border-paper-line text-ink-soft hover:border-brass"
             )}
           >
-            {f}
+            {t(f)}
           </button>
         ))}
       </div>
 
       {!orders ? (
-        <p className="text-ink-soft">Loading orders…</p>
+        <p className="text-ink-soft">{t("Loading orders…")}</p>
       ) : orders.length === 0 ? (
         <div className="paper-card px-6 py-10 text-center text-ink-soft">
-          No orders {filter === "ALL" ? "yet" : `with status ${filter}`}.
+          {filter === "ALL"
+            ? t("No orders yet.")
+            : t("No orders with status {status}.").replace("{status}", t(filter))}
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -132,7 +136,7 @@ export default function OrdersPage() {
                 </div>
                 <div className="text-right">
                   <p className="tabular text-lg font-semibold">
-                    {o.order_total != null ? o.order_total.toLocaleString() : "—"}
+                    {o.order_total != null ? formatMoney(o.order_total) : "—"}
                   </p>
                   <p className="text-xs text-ink-faint tabular">
                     {new Date(o.created_at).toLocaleDateString()}
@@ -146,7 +150,7 @@ export default function OrdersPage() {
               )}
               {o.order_status === "RETURNED" && o.return_reason && (
                 <p className="mt-2 text-sm text-stamp-red" dir="auto">
-                  Return reason: {o.return_reason}
+                  {t("Return reason:")} {o.return_reason}
                 </p>
               )}
               <div className="mt-3 flex items-center justify-between gap-3">
@@ -157,7 +161,7 @@ export default function OrdersPage() {
                       : "ink"
                   }
                 >
-                  {o.order_status ?? "Unknown"}
+                  {o.order_status ? t(o.order_status) : t("Unknown")}
                 </Stamp>
                 {o.order_status === "RETURNED" ? null : (
                   <div className="flex items-center gap-2">
@@ -174,7 +178,7 @@ export default function OrdersPage() {
                     >
                       {STATUSES.map((s) => (
                         <option key={s} value={s}>
-                          {s}
+                          {t(s)}
                         </option>
                       ))}
                     </select>
@@ -183,7 +187,7 @@ export default function OrdersPage() {
                       onClick={() => setReturningOrder(o)}
                       className="rounded-md border border-stamp-red/50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-stamp-red hover:bg-stamp-red-soft"
                     >
-                      Mark as Returned
+                      {t("Mark as Returned")}
                     </button>
                   </div>
                 )}

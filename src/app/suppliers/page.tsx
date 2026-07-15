@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useSeller } from "@/lib/SellerContext";
+import { useSettings } from "@/lib/SettingsContext";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import type { Supplier } from "@/lib/types";
 import { InlineEdit } from "@/components/ui/InlineEdit";
@@ -10,6 +11,7 @@ import { AddSupplierModal } from "@/components/suppliers/AddSupplierModal";
 
 export default function SuppliersPage() {
   const { sellerId } = useSeller();
+  const { t } = useSettings();
   const [suppliers, setSuppliers] = useState<Supplier[] | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -64,16 +66,16 @@ export default function SuppliersPage() {
     <div>
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Suppliers</h1>
+          <h1 className="text-2xl font-semibold">{t("Suppliers")}</h1>
           <p className="text-sm text-ink-soft">
-            Who you buy stock from — edit any cell directly.
+            {t("Who you buy stock from — edit any cell directly.")}
           </p>
         </div>
         <button
           onClick={() => setShowAdd(true)}
           className="shrink-0 rounded-md bg-ink px-4 py-2 text-sm font-semibold uppercase tracking-wide text-paper-raised"
         >
-          + New Supplier
+          {t("+ New Supplier")}
         </button>
       </div>
 
@@ -87,31 +89,31 @@ export default function SuppliersPage() {
 
       {saveError && (
         <div className="mb-4 flex items-start justify-between gap-3 rounded-md border border-stamp-red/40 bg-stamp-red-soft px-4 py-2.5 text-sm text-stamp-red">
-          <span>Save failed: {saveError}</span>
+          <span>{t("Save failed:")} {saveError}</span>
           <button
             onClick={() => setSaveError(null)}
             className="shrink-0 font-medium hover:opacity-70"
           >
-            Dismiss
+            {t("Dismiss")}
           </button>
         </div>
       )}
 
       {!suppliers ? (
-        <p className="text-ink-soft">Loading suppliers…</p>
+        <p className="text-ink-soft">{t("Loading suppliers…")}</p>
       ) : suppliers.length === 0 ? (
         <div className="paper-card px-6 py-10 text-center text-ink-soft">
-          No suppliers yet. Add one above.
+          {t("No suppliers yet. Add one above.")}
         </div>
       ) : (
         <div className="paper-card overflow-x-auto">
           <table className="w-full min-w-[680px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-paper-line text-left text-xs uppercase tracking-wide text-ink-faint">
-                <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Phone</th>
-                <th className="px-4 py-3 font-medium">Contact info</th>
-                <th className="px-4 py-3 font-medium">Notes</th>
+                <th className="px-4 py-3 font-medium">{t("Name")}</th>
+                <th className="px-4 py-3 font-medium">{t("Phone")}</th>
+                <th className="px-4 py-3 font-medium">{t("Contact info")}</th>
+                <th className="px-4 py-3 font-medium">{t("Notes")}</th>
                 <th className="px-4 py-3 font-medium" />
               </tr>
             </thead>
@@ -153,7 +155,7 @@ export default function SuppliersPage() {
                       onClick={() => remove(s.id)}
                       className="text-xs font-medium text-stamp-red hover:opacity-70"
                     >
-                      Delete
+                      {t("Delete")}
                     </button>
                   </td>
                 </tr>

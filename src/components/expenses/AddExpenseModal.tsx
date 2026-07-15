@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Modal } from "@/components/ui/Modal";
 import { Field, fieldInputClass, fieldTextareaClass } from "@/components/ui/Field";
+import { useSettings } from "@/lib/SettingsContext";
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
@@ -18,6 +19,7 @@ export function AddExpenseModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const { t } = useSettings();
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
@@ -47,10 +49,10 @@ export function AddExpenseModal({
   };
 
   return (
-    <Modal title="Log Expense" onClose={onClose}>
+    <Modal title={t("Log Expense")} onClose={onClose}>
       <form onSubmit={submit} className="flex flex-col gap-3">
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Amount">
+          <Field label={t("Amount")}>
             <input
               autoFocus
               type="number"
@@ -60,7 +62,7 @@ export function AddExpenseModal({
               className={`${fieldInputClass} tabular`}
             />
           </Field>
-          <Field label="Date">
+          <Field label={t("Date")}>
             <input
               type="date"
               value={expenseDate}
@@ -69,7 +71,7 @@ export function AddExpenseModal({
             />
           </Field>
         </div>
-        <Field label="Category">
+        <Field label={t("Category")}>
           <input
             dir="auto"
             value={category}
@@ -78,7 +80,7 @@ export function AddExpenseModal({
             className={fieldInputClass}
           />
         </Field>
-        <Field label="Description">
+        <Field label={t("Description")}>
           <textarea
             dir="auto"
             rows={2}
@@ -96,14 +98,14 @@ export function AddExpenseModal({
             onClick={onClose}
             className="rounded-md border border-paper-line px-4 py-2 text-sm font-medium text-ink-soft"
           >
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             type="submit"
             disabled={saving || amount === ""}
             className="rounded-md bg-ink px-4 py-2 text-sm font-semibold uppercase tracking-wide text-paper-raised disabled:opacity-40"
           >
-            {saving ? "Saving…" : "Log expense"}
+            {saving ? t("Saving…") : t("Log expense")}
           </button>
         </div>
       </form>

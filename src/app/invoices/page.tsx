@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useSeller } from "@/lib/SellerContext";
+import { useSettings } from "@/lib/SettingsContext";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import type { Customer, Order, PricingTier, SellerProduct } from "@/lib/types";
 import { Stamp } from "@/components/ui/Stamp";
@@ -28,6 +29,7 @@ type InvoiceGroup = {
 
 export default function InvoicesPage() {
   const { sellerId } = useSeller();
+  const { t, formatMoney } = useSettings();
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [customers, setCustomers] = useState<Customer[] | null>(null);
   const [tiers, setTiers] = useState<PricingTier[] | null>(null);
@@ -171,18 +173,17 @@ export default function InvoicesPage() {
   return (
     <div>
       <div className="mb-5">
-        <h1 className="text-2xl font-semibold">Invoices</h1>
+        <h1 className="text-2xl font-semibold">{t("Invoices")}</h1>
         <p className="text-sm text-ink-soft">
-          Every sale rung up through POS — click one to view or print its
-          invoice again.
+          {t("Every sale rung up through POS — click one to view or print its invoice again.")}
         </p>
       </div>
 
       {!orders ? (
-        <p className="text-ink-soft">Loading invoices…</p>
+        <p className="text-ink-soft">{t("Loading invoices…")}</p>
       ) : groups.length === 0 ? (
         <div className="paper-card px-6 py-10 text-center text-ink-soft">
-          No sales yet — completed POS sales will show up here.
+          {t("No sales yet — completed POS sales will show up here.")}
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -197,17 +198,17 @@ export default function InvoicesPage() {
               >
                 <div className="min-w-0">
                   <p className="font-medium" dir="auto">
-                    {customer?.name || g.phone || "Walk-in customer"}
+                    {customer?.name || g.phone || t("Walk-in customer")}
                   </p>
                   <p className="text-xs text-ink-faint">
                     {new Date(g.createdAt).toLocaleString()} · {g.itemCount}{" "}
-                    item{g.itemCount === 1 ? "" : "s"}
-                    {g.invoiceNumber ? ` · No. ${g.invoiceNumber}` : ""}
+                    {g.itemCount === 1 ? t("item") : t("items")}
+                    {g.invoiceNumber ? ` · ${t("No.")} ${g.invoiceNumber}` : ""}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
                   <Stamp tone={g.isWholesale ? "brass" : "ink"}>
-                    {g.isWholesale ? "Wholesale" : "Retail"}
+                    {g.isWholesale ? t("Wholesale") : t("Retail")}
                   </Stamp>
                   <Stamp
                     tone={
@@ -219,13 +220,13 @@ export default function InvoicesPage() {
                     }
                   >
                     {balance <= 0.005
-                      ? "Paid"
+                      ? t("Paid")
                       : g.paidAmount > 0
-                        ? "Partial"
-                        : "Debt"}
+                        ? t("Partial")
+                        : t("Debt")}
                   </Stamp>
                   <p className="tabular w-20 text-right text-lg font-semibold">
-                    {g.total.toLocaleString()}
+                    {formatMoney(g.total)}
                   </p>
                 </div>
               </button>

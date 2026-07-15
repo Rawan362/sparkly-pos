@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Modal } from "@/components/ui/Modal";
 import { Field, fieldInputClass, fieldTextareaClass } from "@/components/ui/Field";
+import { useSettings } from "@/lib/SettingsContext";
 
 export function AddSupplierModal({
   sellerId,
@@ -14,6 +15,7 @@ export function AddSupplierModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const { t } = useSettings();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [contactInfo, setContactInfo] = useState("");
@@ -43,9 +45,9 @@ export function AddSupplierModal({
   };
 
   return (
-    <Modal title="New Supplier" onClose={onClose}>
+    <Modal title={t("New Supplier")} onClose={onClose}>
       <form onSubmit={submit} className="flex flex-col gap-3">
-        <Field label="Name">
+        <Field label={t("Name")}>
           <input
             autoFocus
             dir="auto"
@@ -54,7 +56,7 @@ export function AddSupplierModal({
             className={fieldInputClass}
           />
         </Field>
-        <Field label="Phone">
+        <Field label={t("Phone")}>
           <input
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
@@ -62,7 +64,7 @@ export function AddSupplierModal({
             className={fieldInputClass}
           />
         </Field>
-        <Field label="Contact info">
+        <Field label={t("Contact info")}>
           <input
             dir="auto"
             value={contactInfo}
@@ -71,7 +73,7 @@ export function AddSupplierModal({
             className={fieldInputClass}
           />
         </Field>
-        <Field label="Notes">
+        <Field label={t("Notes")}>
           <textarea
             dir="auto"
             rows={2}
@@ -89,14 +91,14 @@ export function AddSupplierModal({
             onClick={onClose}
             className="rounded-md border border-paper-line px-4 py-2 text-sm font-medium text-ink-soft"
           >
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             type="submit"
             disabled={saving || !name.trim()}
             className="rounded-md bg-ink px-4 py-2 text-sm font-semibold uppercase tracking-wide text-paper-raised disabled:opacity-40"
           >
-            {saving ? "Saving…" : "Add supplier"}
+            {saving ? t("Saving…") : t("Add supplier")}
           </button>
         </div>
       </form>

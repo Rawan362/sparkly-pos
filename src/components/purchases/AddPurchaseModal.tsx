@@ -4,6 +4,8 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Modal } from "@/components/ui/Modal";
 import { Field, fieldInputClass } from "@/components/ui/Field";
+import { useSettings } from "@/lib/SettingsContext";
+import { useLocations } from "@/lib/useLocations";
 import type { SellerProduct, Supplier } from "@/lib/types";
 
 function todayIso() {
@@ -23,6 +25,8 @@ export function AddPurchaseModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const { t } = useSettings();
+  const { defaultLocation } = useLocations();
   const [supplierId, setSupplierId] = useState(suppliers[0]?.id ?? "");
   const [productId, setProductId] = useState(products[0]?.id ?? "");
   const [quantity, setQuantity] = useState("1");
@@ -51,14 +55,27 @@ export function AddPurchaseModal({
       return;
     }
 
+    // Restocks into the seller's default location -- product_stock_by_location
+    // is the source of truth for stock going forward, not
+    // seller_products.stock_quantity.
     const product = products.find((p) => p.id === productId);
-    if (product?.track_stock) {
-      await supabase
-        .from("seller_products")
-        .update({
-          stock_quantity: (product.stock_quantity ?? 0) + Number(quantity),
-        })
-        .eq("id", product.id);
+    if (product?.track_stock && defaultLocation) {
+      const { data: stockRow } = await supabase
+        .from("product_stock_by_location")
+        .select("stock_quantity")
+        .eq("product_id", product.id)
+        .eq("location_id", defaultLocation.id)
+        .maybeSingle();
+      await supabase.from("product_stock_by_location").upsert(
+        {
+          product_id: product.id,
+          location_id: defaultLocation.id,
+          stock_quantity:
+            (stockRow?.stock_quantity ?? product.stock_quantity ?? 0) +
+            Number(quantity),
+        },
+        { onConflict: "product_id,location_id" }
+      );
     }
 
     setSaving(false);
@@ -67,15 +84,15 @@ export function AddPurchaseModal({
   };
 
   return (
-    <Modal title="Record Purchase" onClose={onClose}>
+    <Modal title={t("Record Purchase")} onClose={onClose}>
       <form onSubmit={submit} className="flex flex-col gap-3">
-        <Field label="Supplier">
+        <Field label={t("Supplier")}>
           <select
             value={supplierId}
             onChange={(e) => setSupplierId(e.target.value)}
             className={fieldInputClass}
           >
-            <option value="">No supplier</option>
+            <option value="">{t("No supplier")}</option>
             {suppliers.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -83,7 +100,7 @@ export function AddPurchaseModal({
             ))}
           </select>
         </Field>
-        <Field label="Product">
+        <Field label={t("Product")}>
           <select
             value={productId}
             onChange={(e) => setProductId(e.target.value)}
@@ -97,7 +114,7 @@ export function AddPurchaseModal({
           </select>
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Quantity">
+          <Field label={t("Quantity")}>
             <input
               type="number"
               step="any"
@@ -107,7 +124,7 @@ export function AddPurchaseModal({
               className={`${fieldInputClass} tabular`}
             />
           </Field>
-          <Field label="Cost price">
+          <Field label={t("Cost price")}>
             <input
               type="number"
               step="0.01"
@@ -117,7 +134,7 @@ export function AddPurchaseModal({
             />
           </Field>
         </div>
-        <Field label="Date">
+        <Field label={t("Date")}>
           <input
             type="date"
             value={purchaseDate}
@@ -134,14 +151,14 @@ export function AddPurchaseModal({
             onClick={onClose}
             className="rounded-md border border-paper-line px-4 py-2 text-sm font-medium text-ink-soft"
           >
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             type="submit"
             disabled={saving || !productId || quantity === "" || Number(quantity) <= 0}
             className="rounded-md bg-ink px-4 py-2 text-sm font-semibold uppercase tracking-wide text-paper-raised disabled:opacity-40"
           >
-            {saving ? "Saving…" : "Record purchase"}
+            {saving ? t("Saving…") : t("Record purchase")}
           </button>
         </div>
       </form>

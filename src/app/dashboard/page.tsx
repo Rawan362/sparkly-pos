@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabaseClient";
 import { useSeller } from "@/lib/SellerContext";
+import { useSettings } from "@/lib/SettingsContext";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import type { OrderStatus } from "@/lib/types";
 import { StatTile } from "@/components/dashboard/StatTile";
@@ -68,6 +69,7 @@ type RawData = {
 
 export default function DashboardPage() {
   const { sellerId, seller } = useSeller();
+  const { t, formatMoney } = useSettings();
   const [raw, setRaw] = useState<RawData | null>(null);
   const [range, setRange] = useState<DateRangeKey>("all");
   const [customRange, setCustomRange] = useState<CustomRange>(defaultCustomRange);
@@ -226,11 +228,14 @@ export default function DashboardPage() {
     <div>
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
+          <h1 className="text-2xl font-semibold">{t("Dashboard")}</h1>
           <p className="text-sm text-ink-soft">
             {seller?.business_name_location
-              ? `A quick look at ${seller.business_name_location}.`
-              : "A quick look at how business is going."}
+              ? t("A quick look at {business}.").replace(
+                  "{business}",
+                  seller.business_name_location
+                )
+              : t("A quick look at how business is going.")}
           </p>
         </div>
         <DateRangeFilter
@@ -242,13 +247,13 @@ export default function DashboardPage() {
       </div>
 
       {!raw || !filtered ? (
-        <p className="text-ink-soft">Loading dashboard…</p>
+        <p className="text-ink-soft">{t("Loading dashboard…")}</p>
       ) : (
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <StatTile
               label="Total sales"
-              value={filtered.totalSales.toLocaleString()}
+              value={formatMoney(filtered.totalSales)}
               tone="brass"
             />
             <StatTile
@@ -262,7 +267,7 @@ export default function DashboardPage() {
             />
             <StatTile
               label="Total expenses"
-              value={filtered.totalExpenses.toLocaleString()}
+              value={formatMoney(filtered.totalExpenses)}
               href="/expenses"
             />
             <StatTile

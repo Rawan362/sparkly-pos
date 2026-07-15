@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useSeller } from "@/lib/SellerContext";
+import { useSettings } from "@/lib/SettingsContext";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import type { PricingTier } from "@/lib/types";
 import { Stamp } from "@/components/ui/Stamp";
 
 export default function PricingTiersPage() {
   const { sellerId } = useSeller();
+  const { t } = useSettings();
   const [tiers, setTiers] = useState<PricingTier[] | null>(null);
   const [name, setName] = useState("");
   const [percent, setPercent] = useState("");
@@ -82,52 +84,51 @@ export default function PricingTiersPage() {
   return (
     <div>
       <div className="mb-5">
-        <h1 className="text-2xl font-semibold">Pricing Tiers</h1>
+        <h1 className="text-2xl font-semibold">{t("Pricing Tiers")}</h1>
         <p className="text-sm text-ink-soft">
-          Adjustments Ahmad can offer different customers, e.g. “Wholesale,
-          -15%”.
+          {t("Adjustments Ahmad can offer different customers, e.g. “Wholesale, -15%”.")}
         </p>
       </div>
 
       {!tiers ? (
-        <p className="text-ink-soft">Loading tiers…</p>
+        <p className="text-ink-soft">{t("Loading tiers…")}</p>
       ) : (
         <div className="paper-card mb-6 divide-y divide-paper-line">
           {tiers.length === 0 ? (
             <p className="px-6 py-10 text-center text-ink-soft">
-              No pricing tiers yet — add your first one below.
+              {t("No pricing tiers yet — add your first one below.")}
             </p>
           ) : (
-            tiers.map((t) => (
+            tiers.map((tier) => (
               <div
-                key={t.id}
+                key={tier.id}
                 className="flex items-center justify-between gap-4 px-5 py-3"
               >
                 <div className="min-w-0">
                   <p className="truncate font-medium" dir="auto">
-                    {t.name}
+                    {tier.name}
                   </p>
                   <p className="tabular text-sm text-ink-soft">
-                    {t.adjustment_percent > 0 ? "+" : ""}
-                    {t.adjustment_percent}%
+                    {tier.adjustment_percent > 0 ? "+" : ""}
+                    {tier.adjustment_percent}%
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
-                  {t.is_default ? (
-                    <Stamp tone="brass">Default</Stamp>
+                  {tier.is_default ? (
+                    <Stamp tone="brass">{t("Default")}</Stamp>
                   ) : (
                     <button
-                      onClick={() => makeDefault(t.id)}
+                      onClick={() => makeDefault(tier.id)}
                       className="text-xs font-medium text-ink-soft underline decoration-dotted underline-offset-4 hover:text-brass-dark"
                     >
-                      Make default
+                      {t("Make default")}
                     </button>
                   )}
                   <button
-                    onClick={() => remove(t.id)}
+                    onClick={() => remove(tier.id)}
                     className="text-xs font-medium text-stamp-red hover:opacity-70"
                   >
-                    Delete
+                    {t("Delete")}
                   </button>
                 </div>
               </div>
@@ -141,7 +142,7 @@ export default function PricingTiersPage() {
         className="paper-card flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-end"
       >
         <label className="flex-1 text-sm">
-          <span className="mb-1 block text-ink-soft">Tier name</span>
+          <span className="mb-1 block text-ink-soft">{t("Tier name")}</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -150,7 +151,7 @@ export default function PricingTiersPage() {
           />
         </label>
         <label className="text-sm sm:w-40">
-          <span className="mb-1 block text-ink-soft">Adjustment %</span>
+          <span className="mb-1 block text-ink-soft">{t("Adjustment %")}</span>
           <input
             type="number"
             step="0.1"
@@ -167,14 +168,14 @@ export default function PricingTiersPage() {
             onChange={(e) => setIsDefault(e.target.checked)}
             className="h-4 w-4 accent-[var(--color-brass)]"
           />
-          Set as default
+          {t("Set as default")}
         </label>
         <button
           type="submit"
           disabled={adding || !name.trim() || percent === ""}
           className="rounded-md bg-ink px-4 py-2 text-sm font-semibold uppercase tracking-wide text-paper-raised disabled:opacity-40"
         >
-          Add tier
+          {t("Add tier")}
         </button>
       </form>
     </div>
