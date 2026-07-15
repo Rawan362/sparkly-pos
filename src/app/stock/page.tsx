@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useSeller } from "@/lib/SellerContext";
+import { useStaff } from "@/lib/StaffContext";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
+import { logActivity } from "@/lib/activityLog";
 import type { SellerProduct } from "@/lib/types";
 import { InlineEdit } from "@/components/ui/InlineEdit";
 import { Toggle } from "@/components/ui/Toggle";
@@ -11,6 +13,7 @@ import { Stamp } from "@/components/ui/Stamp";
 
 export default function StockPage() {
   const { sellerId } = useSeller();
+  const { actorName } = useStaff();
   const [products, setProducts] = useState<SellerProduct[] | null>(null);
 
   const load = useCallback(() => {
@@ -35,10 +38,18 @@ export default function StockPage() {
   );
 
   const update = async (id: string, patch: Partial<SellerProduct>) => {
+    const productName = products?.find((p) => p.id === id)?.product_name ?? "product";
     setProducts(
       (prev) => prev?.map((p) => (p.id === id ? { ...p, ...patch } : p)) ?? null
     );
     await supabase.from("seller_products").update(patch).eq("id", id);
+    if (sellerId && "stock_quantity" in patch) {
+      await logActivity(
+        sellerId,
+        actorName,
+        `Adjusted stock for "${productName}" to ${patch.stock_quantity ?? 0}`
+      );
+    }
   };
 
   const isLow = (p: SellerProduct) =>

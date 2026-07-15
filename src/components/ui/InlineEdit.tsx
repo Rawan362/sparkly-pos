@@ -10,6 +10,7 @@ type Props = {
   align?: "left" | "right";
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 };
 
 // Click-to-edit text that renders as plain ledger text until touched, then
@@ -21,6 +22,7 @@ export function InlineEdit({
   align = "left",
   placeholder,
   className,
+  disabled,
 }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -30,12 +32,13 @@ export function InlineEdit({
     return (
       <button
         type="button"
+        disabled={disabled}
         onClick={() => {
           setDraft(value);
           setEditing(true);
         }}
         className={clsx(
-          "w-full rounded px-1.5 py-1 text-left transition-colors hover:bg-brass-soft/60",
+          "w-full rounded px-1.5 py-1 text-left transition-colors hover:bg-brass-soft/60 disabled:cursor-default disabled:hover:bg-transparent",
           type === "number" && "tabular",
           align === "right" && "text-right",
           !value && "text-ink-faint italic",

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { logActivity } from "@/lib/activityLog";
+import { useStaff } from "@/lib/StaffContext";
 import { Modal } from "@/components/ui/Modal";
 import { Field, fieldInputClass, fieldTextareaClass } from "@/components/ui/Field";
 
@@ -31,6 +33,7 @@ export function AddProductModal({
 }) {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
+  const { actorName } = useStaff();
 
   const set = (key: keyof typeof EMPTY) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -56,6 +59,11 @@ export function AddProductModal({
       special_offers: form.special_offers.trim() || null,
       is_active: true,
     });
+    await logActivity(
+      sellerId,
+      actorName,
+      `Added product "${form.product_name.trim()}"`
+    );
     setSaving(false);
     onCreated();
     onClose();

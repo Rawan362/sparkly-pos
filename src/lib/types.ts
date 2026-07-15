@@ -106,4 +106,81 @@ export type Order = {
   amount_paid: number | null;
   invoice_number: string | null;
   is_wholesale: boolean;
+  payment_account_id: string | null;
+};
+
+export type InvoiceStatus = "draft" | "sent" | "paid";
+
+export type InvoiceLineItem = {
+  name: string;
+  code: string | null;
+  quantity: number;
+  unit_price: number;
+  total: number;
+};
+
+export type Invoice = {
+  id: string;
+  invoice_number: string | null;
+  seller_id: string;
+  customer_phone: string | null;
+  order_id: string | null;
+  items: InvoiceLineItem[];
+  subtotal: number;
+  shipping: number;
+  total: number;
+  status: InvoiceStatus;
+  created_at: string;
+};
+
+export type StaffRole = "admin" | "staff";
+
+export type StaffMember = {
+  id: string;
+  chat_id: string;
+  name: string;
+  pin: string;
+  role: StaffRole;
+  created_at: string;
+};
+
+export type ActivityLogEntry = {
+  id: string;
+  chat_id: string;
+  actor_name: string;
+  action_description: string;
+  created_at: string;
+};
+
+export type PaymentAccount = {
+  id: string;
+  chat_id: string;
+  name: string;
+  type: string | null;
+  created_at: string;
+};
+
+export type QuoteStatus = "quoted" | "converted";
+
+export type QuoteLineItem = {
+  product_id: string | null;
+  name: string;
+  code: string | null;
+  quantity: number;
+  unit_price: number;
+  total: number;
+};
+
+export type Quote = {
+  id: string;
+  seller_id: string;
+  customer_phone: string | null;
+  customer_name: string | null;
+  items: QuoteLineItem[];
+  subtotal: number;
+  discount: number;
+  shipping: number;
+  total: number;
+  status: QuoteStatus;
+  created_at: string;
 };

@@ -5,19 +5,42 @@ import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { useSeller } from "@/lib/SellerContext";
+import { StaffSwitcher } from "@/components/StaffSwitcher";
 
-const TABS = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/pos", label: "POS" },
-  { href: "/products", label: "Products" },
-  { href: "/stock", label: "Stock" },
-  { href: "/pricing-tiers", label: "Pricing Tiers" },
-  { href: "/units", label: "Units" },
-  { href: "/orders", label: "Orders" },
-  { href: "/invoices", label: "Invoices" },
-  { href: "/expenses", label: "Expenses" },
-  { href: "/customers", label: "Customers" },
-  { href: "/settings", label: "Settings" },
+const NAV_SECTIONS: Array<{
+  label: string | null;
+  tabs: Array<{ href: string; label: string }>;
+}> = [
+  {
+    label: null,
+    tabs: [
+      { href: "/dashboard", label: "Dashboard" },
+      { href: "/pos", label: "POS" },
+      { href: "/products", label: "Products" },
+      { href: "/stock", label: "Stock" },
+      { href: "/pricing-tiers", label: "Pricing Tiers" },
+      { href: "/units", label: "Units" },
+      { href: "/orders", label: "Orders" },
+      { href: "/customers", label: "Customers" },
+      { href: "/expenses", label: "Expenses" },
+    ],
+  },
+  {
+    label: "Finance",
+    tabs: [
+      { href: "/invoices", label: "Invoices" },
+      { href: "/payment-accounts", label: "Payment Accounts" },
+      { href: "/quotes", label: "Quotes" },
+    ],
+  },
+  {
+    label: "Settings",
+    tabs: [
+      { href: "/settings", label: "Settings" },
+      { href: "/staff", label: "Staff" },
+      { href: "/activity-log", label: "Activity Log" },
+    ],
+  },
 ];
 
 const COLLAPSE_STORAGE_KEY = "sparkly.sidebarCollapsed";
@@ -100,27 +123,37 @@ export function Sidebar() {
         </div>
 
         <nav className="flex gap-1 overflow-x-auto px-2 pb-2 sm:flex-1 sm:flex-col sm:gap-0.5 sm:overflow-x-visible sm:overflow-y-auto sm:px-3 sm:pb-4">
-          {TABS.map((tab) => {
-            const active = pathname?.startsWith(tab.href);
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className={clsx(
-                  "shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  "border-b-2 sm:border-b-0 sm:border-l-4",
-                  active
-                    ? "border-brass text-ink sm:bg-brass-soft/50"
-                    : "border-transparent text-ink-faint hover:text-ink-soft"
-                )}
-              >
-                {tab.label}
-              </Link>
-            );
-          })}
+          {NAV_SECTIONS.map((section, i) => (
+            <div key={section.label ?? "core"} className={clsx("contents sm:block", i > 0 && "sm:mt-3")}>
+              {section.label && (
+                <p className="hidden px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-ink-faint sm:block">
+                  {section.label}
+                </p>
+              )}
+              {section.tabs.map((tab) => {
+                const active = pathname?.startsWith(tab.href);
+                return (
+                  <Link
+                    key={tab.href}
+                    href={tab.href}
+                    className={clsx(
+                      "shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      "border-b-2 sm:border-b-0 sm:border-l-4",
+                      active
+                        ? "border-brass text-ink sm:bg-brass-soft/50"
+                        : "border-transparent text-ink-faint hover:text-ink-soft"
+                    )}
+                  >
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
-        <div className="hidden border-t border-paper-line px-3 py-3 sm:block sm:mt-auto">
+        <div className="hidden flex-col gap-2 border-t border-paper-line px-3 py-3 sm:flex sm:mt-auto">
+          <StaffSwitcher />
           {switchSellerControl}
         </div>
       </aside>

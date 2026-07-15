@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useSeller } from "@/lib/SellerContext";
+import { useStaff } from "@/lib/StaffContext";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
+import { logActivity } from "@/lib/activityLog";
 import type { SellerProduct } from "@/lib/types";
 import { InlineEdit } from "@/components/ui/InlineEdit";
 import { Toggle } from "@/components/ui/Toggle";
@@ -12,6 +14,7 @@ import { AddProductModal } from "@/components/products/AddProductModal";
 
 export default function ProductsPage() {
   const { sellerId } = useSeller();
+  const { actorName } = useStaff();
   const [products, setProducts] = useState<SellerProduct[] | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -38,6 +41,8 @@ export default function ProductsPage() {
 
   const update = async (id: string, patch: Partial<SellerProduct>) => {
     const prevProducts = products;
+    const productName =
+      prevProducts?.find((p) => p.id === id)?.product_name ?? "product";
     setProducts(
       (prev) => prev?.map((p) => (p.id === id ? { ...p, ...patch } : p)) ?? null
     );
@@ -54,6 +59,8 @@ export default function ProductsPage() {
       setSaveError(
         "No matching row was updated. This usually means a Row Level Security policy on 'seller_products' is blocking updates for this row."
       );
+    } else if (sellerId) {
+      await logActivity(sellerId, actorName, `Edited product "${productName}"`);
     }
   };
 

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useSeller } from "@/lib/SellerContext";
+import { useStaff } from "@/lib/StaffContext";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import type { PosSettings } from "@/lib/types";
 import { Toggle } from "@/components/ui/Toggle";
@@ -44,11 +45,12 @@ const SWITCHES: Array<{
 
 export default function SettingsPage() {
   const { sellerId, seller } = useSeller();
+  const { isStaffRole } = useStaff();
   const [settings, setSettings] = useState<PosSettings | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const updateBusinessPhone = async (value: string) => {
-    if (!sellerId) return;
+    if (!sellerId || isStaffRole) return;
     const { data, error } = await supabase
       .from("sellers")
       .update({ business_phone: value || null })
@@ -86,7 +88,7 @@ export default function SettingsPage() {
   );
 
   const update = async (patch: Partial<PosSettings>) => {
-    if (!sellerId) return;
+    if (!sellerId || isStaffRole) return;
     const prevSettings = settings;
     setSettings((prev) => (prev ? { ...prev, ...patch } : prev));
     const { error } = await supabase
@@ -107,6 +109,12 @@ export default function SettingsPage() {
           Ahmad to do automatically.
         </p>
       </div>
+
+      {isStaffRole && (
+        <div className="mb-4 rounded-md border border-brass/40 bg-brass-soft/60 px-4 py-2.5 text-sm text-brass-dark">
+          You&apos;re signed in as Staff — Settings is view-only.
+        </div>
+      )}
 
       {saveError && (
         <div className="mb-4 flex items-start justify-between gap-3 rounded-md border border-stamp-red/40 bg-stamp-red-soft px-4 py-2.5 text-sm text-stamp-red">
@@ -133,6 +141,7 @@ export default function SettingsPage() {
             placeholder="Add a phone number"
             onSave={updateBusinessPhone}
             align="right"
+            disabled={isStaffRole}
           />
         </div>
       </div>
@@ -153,6 +162,7 @@ export default function SettingsPage() {
               <Toggle
                 checked={Boolean(settings[s.key])}
                 label={s.label}
+                disabled={isStaffRole}
                 onChange={(next) => update({ [s.key]: next })}
               />
             </div>

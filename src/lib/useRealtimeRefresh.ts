@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 import { supabase } from "./supabaseClient";
 
 /**
@@ -13,9 +13,15 @@ export function useRealtimeRefresh(
   filter: string | undefined,
   onChange: () => void
 ) {
+  // Two components can legitimately subscribe to the same table+filter at
+  // once (e.g. StaffContext app-wide and the Staff page). Supabase dedupes
+  // channels by name, so a shared name would make the second .subscribe()
+  // throw -- useId keeps each hook instance's channel unique.
+  const instanceId = useId();
+
   useEffect(() => {
     const channel = supabase
-      .channel(`realtime:${table}:${filter ?? "all"}`)
+      .channel(`realtime:${table}:${filter ?? "all"}:${instanceId}`)
       .on(
         "postgres_changes",
         {
@@ -32,5 +38,5 @@ export function useRealtimeRefresh(
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [table, filter]);
+  }, [table, filter, instanceId]);
 }
