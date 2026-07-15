@@ -32,7 +32,7 @@ export function AddProductModal({
   onCreated: () => void;
 }) {
   const [form, setForm] = useState(EMPTY);
-  const [manageStock, setManageStock] = useState(false);
+  const [manageStock, setManageStock] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const set = (key: keyof typeof EMPTY) => (
