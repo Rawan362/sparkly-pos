@@ -77,8 +77,8 @@ create table if not exists public.product_stock_by_location (
   id uuid primary key default gen_random_uuid(),
   product_id uuid not null references public.seller_products (id),
   location_id uuid not null references public.locations (id),
-  stock_quantity integer,
-  low_stock_threshold integer,
+  stock_quantity numeric,
+  low_stock_threshold numeric,
   updated_at timestamptz not null default now(),
   unique (product_id, location_id)
 );
@@ -124,6 +124,19 @@ end $$;
 -- ---------------------------------------------------------------------
 
 alter table public.orders
+  add column if not exists location_id uuid references public.locations (id);
+
+-- ---------------------------------------------------------------------
+-- 5. Location tag on stock adjustments
+--
+-- stock_adjustments (added separately, see supabase/stock_adjustments.sql)
+-- logs manual stock changes; this ties each adjustment to the location it
+-- was applied to now that stock is tracked per-location. Nullable so
+-- existing adjustment rows (logged before this column existed) are
+-- unaffected.
+-- ---------------------------------------------------------------------
+
+alter table public.stock_adjustments
   add column if not exists location_id uuid references public.locations (id);
 
 -- Force PostgREST to pick up the new columns/tables immediately instead of

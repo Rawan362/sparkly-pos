@@ -10,6 +10,7 @@ import type { SellerProduct } from "@/lib/types";
 import { InlineEdit } from "@/components/ui/InlineEdit";
 import { Toggle } from "@/components/ui/Toggle";
 import { Stamp } from "@/components/ui/Stamp";
+import { AdjustStockModal } from "@/components/stock/AdjustStockModal";
 
 type StockValue = {
   stock_quantity: number | null;
@@ -23,6 +24,8 @@ export default function StockPage() {
   const [locationId, setLocationId] = useState<string | null>(null);
   const [products, setProducts] = useState<SellerProduct[] | null>(null);
   const [stockRows, setStockRows] = useState<Record<string, StockValue> | null>(null);
+  const [adjusting, setAdjusting] = useState<SellerProduct | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     // Adopts the default location once useLocations resolves it.
@@ -91,19 +94,33 @@ export default function StockPage() {
   );
 
   const updateTrackStock = async (id: string, next: boolean) => {
+    const prevProducts = products;
     setProducts(
       (prev) => prev?.map((p) => (p.id === id ? { ...p, track_stock: next } : p)) ?? null
     );
-    await supabase.from("seller_products").update({ track_stock: next }).eq("id", id);
+    const { data, error } = await supabase
+      .from("seller_products")
+      .update({ track_stock: next })
+      .eq("id", id)
+      .select();
+    if (error) {
+      setProducts(prevProducts ?? null);
+      setSaveError(error.message);
+    } else if (!data || data.length === 0) {
+      setProducts(prevProducts ?? null);
+      setSaveError(
+        "No matching row was updated. This usually means a Row Level Security policy on 'seller_products' is blocking updates for this row."
+      );
+    }
   };
 
-  const updateStock = async (productId: string, patch: Partial<StockValue>) => {
+  const updateThreshold = async (productId: string, low_stock_threshold: number | null) => {
     if (!locationId) return;
     const current = stockRows?.[productId] ?? {
       stock_quantity: null,
       low_stock_threshold: null,
     };
-    const next = { ...current, ...patch };
+    const next = { ...current, low_stock_threshold };
     setStockRows((prev) => ({ ...prev, [productId]: next }));
     await supabase.from("product_stock_by_location").upsert(
       { product_id: productId, location_id: locationId, ...next },
@@ -146,6 +163,18 @@ export default function StockPage() {
         )}
       </div>
 
+      {saveError && (
+        <div className="mb-4 flex items-start justify-between gap-3 rounded-md border border-stamp-red/40 bg-stamp-red-soft px-4 py-2.5 text-sm text-stamp-red">
+          <span>{t("Save failed:")} {saveError}</span>
+          <button
+            onClick={() => setSaveError(null)}
+            className="shrink-0 font-medium hover:opacity-70"
+          >
+            {t("Dismiss")}
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <p className="text-ink-soft">{t("Loading stock…")}</p>
       ) : products.length === 0 ? (
@@ -181,18 +210,18 @@ export default function StockPage() {
                         onChange={(next) => updateTrackStock(p.id, next)}
                       />
                     </td>
-                    <td className="px-2 py-1.5">
+                    <td className="px-4 py-1.5">
                       {p.track_stock ? (
-                        <InlineEdit
-                          type="number"
-                          align="right"
-                          value={stock?.stock_quantity?.toString() ?? ""}
-                          onSave={(v) =>
-                            updateStock(p.id, {
-                              stock_quantity: v === "" ? null : Number(v),
-                            })
-                          }
-                        />
+                        <div className="flex items-center justify-end gap-2">
+                          <span className="tabular">{stock?.stock_quantity ?? 0}</span>
+                          <button
+                            type="button"
+                            onClick={() => setAdjusting(p)}
+                            className="rounded-md border border-paper-line px-2 py-1 text-xs font-medium text-ink-soft hover:border-brass hover:text-brass-dark"
+                          >
+                            {t("Adjust")}
+                          </button>
+                        </div>
                       ) : (
                         <span className="block text-right text-ink-faint">—</span>
                       )}
@@ -204,9 +233,7 @@ export default function StockPage() {
                           align="right"
                           value={stock?.low_stock_threshold?.toString() ?? ""}
                           onSave={(v) =>
-                            updateStock(p.id, {
-                              low_stock_threshold: v === "" ? null : Number(v),
-                            })
+                            updateThreshold(p.id, v === "" ? null : Number(v))
                           }
                         />
                       ) : (
@@ -230,6 +257,17 @@ export default function StockPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {adjusting && sellerId && locationId && (
+        <AdjustStockModal
+          sellerId={sellerId}
+          product={adjusting}
+          locationId={locationId}
+          currentQuantity={stockRows?.[adjusting.id]?.stock_quantity ?? null}
+          onClose={() => setAdjusting(null)}
+          onAdjusted={loadStock}
+        />
       )}
     </div>
   );

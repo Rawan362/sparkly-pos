@@ -41,7 +41,13 @@ const OrdersStatusChart = dynamic(
   { ssr: false }
 );
 
-const STATUSES: OrderStatus[] = ["PENDING", "SHIPPED", "DELIVERED", "CANCELLED"];
+const STATUSES: OrderStatus[] = [
+  "PENDING",
+  "SHIPPED",
+  "DELIVERED",
+  "CANCELLED",
+  "RETURNED",
+];
 
 type OrderRow = {
   order_total: number | null;

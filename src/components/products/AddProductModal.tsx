@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { Modal } from "@/components/ui/Modal";
 import { Field, fieldInputClass, fieldTextareaClass } from "@/components/ui/Field";
 import { useSettings } from "@/lib/SettingsContext";
+import { useLocations } from "@/lib/useLocations";
+import { Toggle } from "@/components/ui/Toggle";
 
 const EMPTY = {
   product_name: "",
@@ -19,6 +21,7 @@ const EMPTY = {
   delivery_info: "",
   competitors_difference: "",
   special_offers: "",
+  stock_quantity: "",
 };
 
 export function AddProductModal({
@@ -31,8 +34,11 @@ export function AddProductModal({
   onCreated: () => void;
 }) {
   const { t } = useSettings();
+  const { defaultLocation } = useLocations();
   const [form, setForm] = useState(EMPTY);
+  const [manageStock, setManageStock] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const set = (key: keyof typeof EMPTY) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -42,23 +48,51 @@ export function AddProductModal({
     e.preventDefault();
     if (!form.product_name.trim()) return;
     setSaving(true);
-    await supabase.from("seller_products").insert({
-      chat_id: sellerId,
-      product_name: form.product_name.trim(),
-      product_code: form.product_code.trim() || null,
-      product_category: form.product_category.trim() || null,
-      wholesale_price: form.wholesale_price === "" ? null : Number(form.wholesale_price),
-      retail_price: form.retail_price === "" ? null : Number(form.retail_price),
-      target_customers: form.target_customers.trim() || null,
-      key_features: form.key_features.trim() || null,
-      common_questions: form.common_questions.trim() || null,
-      payment_methods: form.payment_methods.trim() || null,
-      delivery_info: form.delivery_info.trim() || null,
-      competitors_difference: form.competitors_difference.trim() || null,
-      special_offers: form.special_offers.trim() || null,
-      is_active: true,
-    });
+    setError(null);
+    const startingQuantity = manageStock
+      ? form.stock_quantity === ""
+        ? 0
+        : Number(form.stock_quantity)
+      : null;
+    const { data, error } = await supabase
+      .from("seller_products")
+      .insert({
+        chat_id: sellerId,
+        product_name: form.product_name.trim(),
+        product_code: form.product_code.trim() || null,
+        product_category: form.product_category.trim() || null,
+        wholesale_price: form.wholesale_price === "" ? null : Number(form.wholesale_price),
+        retail_price: form.retail_price === "" ? null : Number(form.retail_price),
+        target_customers: form.target_customers.trim() || null,
+        key_features: form.key_features.trim() || null,
+        common_questions: form.common_questions.trim() || null,
+        payment_methods: form.payment_methods.trim() || null,
+        delivery_info: form.delivery_info.trim() || null,
+        competitors_difference: form.competitors_difference.trim() || null,
+        special_offers: form.special_offers.trim() || null,
+        is_active: true,
+        track_stock: manageStock,
+        stock_quantity: startingQuantity,
+      })
+      .select()
+      .single();
     setSaving(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    // Seeds the starting quantity into the seller's default location so it
+    // shows up immediately on the (per-location) Stock page too.
+    if (manageStock && defaultLocation && data) {
+      await supabase.from("product_stock_by_location").upsert(
+        {
+          product_id: data.id,
+          location_id: defaultLocation.id,
+          stock_quantity: startingQuantity,
+        },
+        { onConflict: "product_id,location_id" }
+      );
+    }
     onCreated();
     onClose();
   };
@@ -113,6 +147,35 @@ export function AddProductModal({
             />
           </Field>
         </div>
+
+        <div className="flex items-center justify-between rounded-md border border-paper-line px-3 py-2.5">
+          <div>
+            <p className="text-sm font-medium">{t("Manage Stock")}</p>
+            <p className="text-xs text-ink-soft">
+              {manageStock
+                ? t("Quantity is counted piece by piece.")
+                : t("Unlimited — quantity isn't tracked.")}
+            </p>
+          </div>
+          <Toggle
+            checked={manageStock}
+            label="Manage stock for this product"
+            onChange={setManageStock}
+          />
+        </div>
+        {manageStock && (
+          <Field label={t("Starting stock quantity")}>
+            <input
+              type="number"
+              step="1"
+              min="0"
+              value={form.stock_quantity}
+              onChange={set("stock_quantity")}
+              placeholder="0"
+              className={`${fieldInputClass} tabular`}
+            />
+          </Field>
+        )}
 
         <Field label={t("Target customers")}>
           <textarea
@@ -177,6 +240,8 @@ export function AddProductModal({
             className={fieldTextareaClass}
           />
         </Field>
+
+        {error && <p className="text-sm text-stamp-red">{error}</p>}
 
         <div className="mt-2 flex justify-end gap-2">
           <button
