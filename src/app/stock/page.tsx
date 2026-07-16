@@ -8,10 +8,13 @@ import type { SellerProduct } from "@/lib/types";
 import { InlineEdit } from "@/components/ui/InlineEdit";
 import { Toggle } from "@/components/ui/Toggle";
 import { Stamp } from "@/components/ui/Stamp";
+import { AdjustStockModal } from "@/components/stock/AdjustStockModal";
 
 export default function StockPage() {
   const { sellerId } = useSeller();
   const [products, setProducts] = useState<SellerProduct[] | null>(null);
+  const [adjusting, setAdjusting] = useState<SellerProduct | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     if (!sellerId) return;
@@ -35,10 +38,24 @@ export default function StockPage() {
   );
 
   const update = async (id: string, patch: Partial<SellerProduct>) => {
+    const prevProducts = products;
     setProducts(
       (prev) => prev?.map((p) => (p.id === id ? { ...p, ...patch } : p)) ?? null
     );
-    await supabase.from("seller_products").update(patch).eq("id", id);
+    const { data, error } = await supabase
+      .from("seller_products")
+      .update(patch)
+      .eq("id", id)
+      .select();
+    if (error) {
+      setProducts(prevProducts ?? null);
+      setSaveError(error.message);
+    } else if (!data || data.length === 0) {
+      setProducts(prevProducts ?? null);
+      setSaveError(
+        "No matching row was updated. This usually means a Row Level Security policy on 'seller_products' is blocking updates for this row."
+      );
+    }
   };
 
   const isLow = (p: SellerProduct) =>
@@ -56,6 +73,18 @@ export default function StockPage() {
           quantities up to date.
         </p>
       </div>
+
+      {saveError && (
+        <div className="mb-4 flex items-start justify-between gap-3 rounded-md border border-stamp-red/40 bg-stamp-red-soft px-4 py-2.5 text-sm text-stamp-red">
+          <span>Save failed: {saveError}</span>
+          <button
+            onClick={() => setSaveError(null)}
+            className="shrink-0 font-medium hover:opacity-70"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {!products ? (
         <p className="text-ink-soft">Loading stock…</p>
@@ -93,18 +122,18 @@ export default function StockPage() {
                       onChange={(next) => update(p.id, { track_stock: next })}
                     />
                   </td>
-                  <td className="px-2 py-1.5">
+                  <td className="px-4 py-1.5">
                     {p.track_stock ? (
-                      <InlineEdit
-                        type="number"
-                        align="right"
-                        value={p.stock_quantity?.toString() ?? ""}
-                        onSave={(v) =>
-                          update(p.id, {
-                            stock_quantity: v === "" ? null : Number(v),
-                          })
-                        }
-                      />
+                      <div className="flex items-center justify-end gap-2">
+                        <span className="tabular">{p.stock_quantity ?? 0}</span>
+                        <button
+                          type="button"
+                          onClick={() => setAdjusting(p)}
+                          className="rounded-md border border-paper-line px-2 py-1 text-xs font-medium text-ink-soft hover:border-brass hover:text-brass-dark"
+                        >
+                          Adjust
+                        </button>
+                      </div>
                     ) : (
                       <span className="block text-right text-ink-faint">—</span>
                     )}
@@ -141,6 +170,15 @@ export default function StockPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {adjusting && sellerId && (
+        <AdjustStockModal
+          sellerId={sellerId}
+          product={adjusting}
+          onClose={() => setAdjusting(null)}
+          onAdjusted={load}
+        />
       )}
     </div>
   );

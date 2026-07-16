@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Modal } from "@/components/ui/Modal";
 import { Field, fieldInputClass, fieldTextareaClass } from "@/components/ui/Field";
+import { Toggle } from "@/components/ui/Toggle";
 
 const EMPTY = {
   product_name: "",
@@ -18,6 +19,7 @@ const EMPTY = {
   delivery_info: "",
   competitors_difference: "",
   special_offers: "",
+  stock_quantity: "",
 };
 
 export function AddProductModal({
@@ -30,7 +32,9 @@ export function AddProductModal({
   onCreated: () => void;
 }) {
   const [form, setForm] = useState(EMPTY);
+  const [manageStock, setManageStock] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const set = (key: keyof typeof EMPTY) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -40,7 +44,8 @@ export function AddProductModal({
     e.preventDefault();
     if (!form.product_name.trim()) return;
     setSaving(true);
-    await supabase.from("seller_products").insert({
+    setError(null);
+    const { error } = await supabase.from("seller_products").insert({
       chat_id: sellerId,
       product_name: form.product_name.trim(),
       product_code: form.product_code.trim() || null,
@@ -55,8 +60,18 @@ export function AddProductModal({
       competitors_difference: form.competitors_difference.trim() || null,
       special_offers: form.special_offers.trim() || null,
       is_active: true,
+      track_stock: manageStock,
+      stock_quantity: manageStock
+        ? form.stock_quantity === ""
+          ? 0
+          : Number(form.stock_quantity)
+        : null,
     });
     setSaving(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
     onCreated();
     onClose();
   };
@@ -111,6 +126,35 @@ export function AddProductModal({
             />
           </Field>
         </div>
+
+        <div className="flex items-center justify-between rounded-md border border-paper-line px-3 py-2.5">
+          <div>
+            <p className="text-sm font-medium">Manage Stock</p>
+            <p className="text-xs text-ink-soft">
+              {manageStock
+                ? "Quantity is counted piece by piece."
+                : "Unlimited — quantity isn't tracked."}
+            </p>
+          </div>
+          <Toggle
+            checked={manageStock}
+            label="Manage stock for this product"
+            onChange={setManageStock}
+          />
+        </div>
+        {manageStock && (
+          <Field label="Starting stock quantity">
+            <input
+              type="number"
+              step="1"
+              min="0"
+              value={form.stock_quantity}
+              onChange={set("stock_quantity")}
+              placeholder="0"
+              className={`${fieldInputClass} tabular`}
+            />
+          </Field>
+        )}
 
         <Field label="Target customers">
           <textarea
@@ -175,6 +219,8 @@ export function AddProductModal({
             className={fieldTextareaClass}
           />
         </Field>
+
+        {error && <p className="text-sm text-stamp-red">{error}</p>}
 
         <div className="mt-2 flex justify-end gap-2">
           <button

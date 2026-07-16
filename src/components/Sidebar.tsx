@@ -6,32 +6,116 @@ import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { useSeller } from "@/lib/SellerContext";
 
-type NavItem = { href: string; label: string };
+type NavLink = { href: string; label: string };
+type NavEntry =
+  | ({ kind: "link" } & NavLink)
+  | { kind: "group"; label: string; links: NavLink[] };
 
-const PRIMARY_TABS: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/pos", label: "POS" },
-  { href: "/products", label: "Products" },
-  { href: "/stock", label: "Stock" },
-  { href: "/pricing-tiers", label: "Pricing Tiers" },
-  { href: "/units", label: "Units" },
-  { href: "/orders", label: "Orders" },
-  { href: "/invoices", label: "Invoices" },
-  { href: "/expenses", label: "Expenses" },
-  { href: "/customers", label: "Customers" },
+const NAV: NavEntry[] = [
+  { kind: "link", href: "/dashboard", label: "Dashboard" },
+  { kind: "link", href: "/pos", label: "POS" },
+  { kind: "link", href: "/products", label: "Products" },
+  { kind: "link", href: "/stock", label: "Stock" },
+  {
+    kind: "group",
+    label: "Purchasing",
+    links: [
+      { href: "/suppliers", label: "Suppliers" },
+      { href: "/purchases", label: "Purchases" },
+    ],
+  },
+  { kind: "link", href: "/pricing-tiers", label: "Pricing Tiers" },
+  { kind: "link", href: "/units", label: "Units" },
+  { kind: "link", href: "/orders", label: "Orders" },
+  { kind: "link", href: "/invoices", label: "Invoices" },
+  { kind: "link", href: "/expenses", label: "Expenses" },
+  { kind: "link", href: "/customers", label: "Customers" },
+  {
+    kind: "group",
+    label: "Insights",
+    links: [
+      { href: "/reports", label: "Reports" },
+      { href: "/insights", label: "Insights" },
+      { href: "/broadcasts", label: "Broadcasts" },
+    ],
+  },
+  { kind: "link", href: "/settings", label: "Settings" },
 ];
-
-const INSIGHTS_TABS: NavItem[] = [
-  { href: "/reports", label: "Reports" },
-  { href: "/insights", label: "Insights" },
-  { href: "/broadcasts", label: "Broadcasts" },
-];
-
-const SETTINGS_TABS: NavItem[] = [{ href: "/settings", label: "Settings" }];
-
-const ALL_TABS: NavItem[] = [...PRIMARY_TABS, ...INSIGHTS_TABS, ...SETTINGS_TABS];
 
 const COLLAPSE_STORAGE_KEY = "sparkly.sidebarCollapsed";
+
+function navLinkClass(active: boolean) {
+  return clsx(
+    "shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors",
+    "border-b-2 sm:border-b-0 sm:border-l-4",
+    active
+      ? "border-brass text-ink sm:bg-brass-soft/50"
+      : "border-transparent text-ink-faint hover:text-ink-soft"
+  );
+}
+
+function NavGroup({
+  label,
+  links,
+  pathname,
+}: {
+  label: string;
+  links: NavLink[];
+  pathname: string | null;
+}) {
+  const hasActiveChild = links.some((l) => pathname?.startsWith(l.href));
+  const [open, setOpen] = useState(hasActiveChild);
+
+  return (
+    <div className="contents sm:block">
+      {/* Mobile: no dropdown, just show the links inline in the scroll row. */}
+      {links.map((l) => (
+        <Link
+          key={l.href}
+          href={l.href}
+          className={clsx(navLinkClass(pathname?.startsWith(l.href) ?? false), "sm:hidden")}
+        >
+          {l.label}
+        </Link>
+      ))}
+
+      {/* Desktop: collapsible group. */}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="hidden w-full items-center justify-between gap-2 rounded-md px-3 pt-3 pb-1 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint transition-colors hover:text-brass-dark sm:flex"
+      >
+        {label}
+        <span
+          className={clsx(
+            "text-base leading-none transition-transform duration-200 ease-out",
+            open && "rotate-90"
+          )}
+        >
+          ›
+        </span>
+      </button>
+      <div
+        className={clsx(
+          "hidden sm:grid sm:grid-cols-1 overflow-hidden transition-[grid-template-rows] duration-200 ease-out",
+          open ? "sm:grid-rows-[1fr]" : "sm:grid-rows-[0fr]"
+        )}
+      >
+        <div className="flex min-h-0 flex-col gap-0.5">
+          {links.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className={navLinkClass(pathname?.startsWith(l.href) ?? false)}
+            >
+              {l.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -110,33 +194,25 @@ export function Sidebar() {
           <div className="shrink-0 sm:hidden">{switchSellerControl}</div>
         </div>
 
-        {/* Mobile: a single flat scrollable row -- grouping doesn't read well
-            as horizontal pills, so every link (including Insights-section
-            ones) is shown at the same level. */}
-        <nav className="flex gap-1 overflow-x-auto px-2 pb-2 sm:hidden">
-          {ALL_TABS.map((tab) => (
-            <NavLink key={tab.href} tab={tab} active={pathname?.startsWith(tab.href)} />
-          ))}
-        </nav>
-
-        {/* Desktop: grouped vertical list. */}
-        <nav className="hidden sm:flex sm:flex-1 sm:flex-col sm:gap-0.5 sm:overflow-y-auto sm:px-3 sm:pb-4">
-          {PRIMARY_TABS.map((tab) => (
-            <NavLink key={tab.href} tab={tab} active={pathname?.startsWith(tab.href)} />
-          ))}
-
-          <p className="mt-4 mb-1 px-3 text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint">
-            Insights
-          </p>
-          {INSIGHTS_TABS.map((tab) => (
-            <NavLink key={tab.href} tab={tab} active={pathname?.startsWith(tab.href)} />
-          ))}
-
-          <div className="mt-4 border-t border-paper-line pt-2">
-            {SETTINGS_TABS.map((tab) => (
-              <NavLink key={tab.href} tab={tab} active={pathname?.startsWith(tab.href)} />
-            ))}
-          </div>
+        <nav className="flex gap-1 overflow-x-auto px-2 pb-2 sm:flex-1 sm:flex-col sm:gap-0.5 sm:overflow-x-visible sm:overflow-y-auto sm:px-3 sm:pb-4">
+          {NAV.map((entry) =>
+            entry.kind === "link" ? (
+              <Link
+                key={entry.href}
+                href={entry.href}
+                className={navLinkClass(pathname?.startsWith(entry.href) ?? false)}
+              >
+                {entry.label}
+              </Link>
+            ) : (
+              <NavGroup
+                key={entry.label}
+                label={entry.label}
+                links={entry.links}
+                pathname={pathname}
+              />
+            )
+          )}
         </nav>
 
         <div className="hidden border-t border-paper-line px-3 py-3 sm:block sm:mt-auto">
@@ -144,22 +220,5 @@ export function Sidebar() {
         </div>
       </aside>
     </>
-  );
-}
-
-function NavLink({ tab, active }: { tab: NavItem; active?: boolean }) {
-  return (
-    <Link
-      href={tab.href}
-      className={clsx(
-        "shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors",
-        "border-b-2 sm:border-b-0 sm:border-l-4",
-        active
-          ? "border-brass text-ink sm:bg-brass-soft/50"
-          : "border-transparent text-ink-faint hover:text-ink-soft"
-      )}
-    >
-      {tab.label}
-    </Link>
   );
 }

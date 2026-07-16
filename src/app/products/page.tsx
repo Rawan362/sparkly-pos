@@ -7,7 +7,6 @@ import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import type { SellerProduct } from "@/lib/types";
 import { InlineEdit } from "@/components/ui/InlineEdit";
 import { Toggle } from "@/components/ui/Toggle";
-import { Stamp } from "@/components/ui/Stamp";
 import { AddProductModal } from "@/components/products/AddProductModal";
 import { BulkPriceAdjustModal } from "@/components/products/BulkPriceAdjustModal";
 
@@ -196,7 +195,7 @@ export default function ProductsPage() {
         </div>
       ) : (
         <div className="paper-card overflow-x-auto">
-          <table className="w-full min-w-[720px] border-collapse text-sm">
+          <table className="w-full min-w-[820px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-paper-line text-left text-xs uppercase tracking-wide text-ink-faint">
                 <th className="px-4 py-3 font-medium">
@@ -213,7 +212,8 @@ export default function ProductsPage() {
                 <th className="px-4 py-3 font-medium">Category</th>
                 <th className="px-4 py-3 font-medium text-right">Wholesale</th>
                 <th className="px-4 py-3 font-medium text-right">Retail</th>
-                <th className="px-4 py-3 font-medium">Stock</th>
+                <th className="px-4 py-3 font-medium">Track Stock</th>
+                <th className="px-4 py-3 font-medium text-right">Stock</th>
                 <th className="px-4 py-3 font-medium">Active</th>
               </tr>
             </thead>
@@ -273,8 +273,15 @@ export default function ProductsPage() {
                     />
                   </td>
                   <td className="px-4 py-1.5">
+                    <Toggle
+                      checked={p.track_stock}
+                      label={`Track stock for ${p.product_name}`}
+                      onChange={(next) => update(p.id, { track_stock: next })}
+                    />
+                  </td>
+                  <td className="tabular px-4 py-1.5 text-right">
                     {p.track_stock ? (
-                      <Stamp tone="brass">Tracking</Stamp>
+                      (p.stock_quantity ?? 0)
                     ) : (
                       <span className="text-ink-faint">—</span>
                     )}

@@ -1,18 +1,19 @@
 -- Run once in the Supabase SQL editor for this project (optional).
--- The Reports/Broadcasts/Insights pages added to the dashboard read from a
--- few tables this project doesn't own (broadcast_log, product_playbooks,
--- and whichever purchases-style table records purchase cost, if any). If
--- those tables exist but only ever had a service-role writer, the anon key
--- the dashboard uses has no SELECT policy on them and every query comes
--- back empty. This grants read-only anon access to each one -- but only if
--- the table actually exists, so it's safe to run even before those tables
--- are created.
+-- The Broadcasts/Insights pages added to the dashboard read from two
+-- tables this project doesn't own: broadcast_log and product_playbooks.
+-- (Reports' profit estimate reads from `purchases`, which already ships
+-- its own anon-read policy in supabase/purchases.sql -- nothing to add
+-- here.) If broadcast_log/product_playbooks exist but only ever had a
+-- service-role writer, the anon key the dashboard uses has no SELECT
+-- policy on them and every query comes back empty. This grants read-only
+-- anon access to each one -- but only if the table actually exists, so
+-- it's safe to run even before those tables are created.
 
 do $$
 declare
   t text;
 begin
-  foreach t in array array['broadcast_log', 'product_playbooks', 'purchases', 'product_purchases', 'purchase_orders']
+  foreach t in array array['broadcast_log', 'product_playbooks']
   loop
     if to_regclass('public.' || t) is not null then
       execute format('alter table public.%I enable row level security', t);
