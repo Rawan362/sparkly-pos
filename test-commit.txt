@@ -1,2 +1,0 @@
-This is a small test commit, requested to verify push access to this branch.
-Safe to delete.
